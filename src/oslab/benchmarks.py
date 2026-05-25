@@ -40,7 +40,7 @@ DUDE_CDK2 = Benchmark(
     name="cdk2-dude",
     description=(
         "DUD-E CDK2 active/decoy benchmark library "
-        "(631 actives, 23,918 decoys; receptor 1KE5)."
+        "(631 actives, 23,918 decoys; receptor 1HCK)."
     ),
     source_url=f"{_DUDE_BASE}/cdk2",
     files=(

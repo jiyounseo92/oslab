@@ -2,7 +2,7 @@
 
 These are the curated per-block outputs from the CDK2 enrichment benchmark
 run referenced in the manuscript. Input dataset: DUD-E CDK2 (631 actives,
-23,918 decoys, receptor 1KE5).
+23,918 decoys, receptor 1HCK).
 
 Full per-ligand files (every docked pose, every MD frame, every FEP
 transformation) are too large to ship in the repo; they are attached as a

@@ -356,7 +356,7 @@ the dashboard open.
 
 The published CDK2 enrichment benchmark uses the DUD-E CDK2 active/decoy
 library: 631 known actives and 23,918 property-matched decoys, receptor
-1KE5. A fresh OSLab install downloads this library from the DUD-E project's
+1HCK. A fresh OSLab install downloads this library from the DUD-E project's
 canonical URL set with one CLI call:
 
 ```

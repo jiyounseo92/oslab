@@ -91,7 +91,7 @@ usage guide.
 
 The published CDK2 enrichment benchmark uses the **DUD-E CDK2** active/decoy
 library: 631 known actives and 23,918 property-matched decoys, receptor
-1KE5. Fetch it directly from DUD-E into your workspace with one command:
+1HCK. Fetch it directly from DUD-E into your workspace with one command:
 
 ```bash
 oslab fetch-benchmark cdk2-dude --to <your_workspace>
