@@ -1,0 +1,19 @@
+.DS_Store
+.micromamba/
+.install-cache/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.egg-info/
+
+data-cache/
+runs/
+logs/
+reports/
+oslab.sqlite
+oslab.sqlite-*
+.oslab/
+
+# Documentation directory (override the workspace 'reports/' rule above)
+!docs/reports/
+!docs/reports/**

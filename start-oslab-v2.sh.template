@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Template launcher for OSLab v2 dashboard (jiyoun's updated UI).
+# Copy this to your home, edit the variables, then bash it.
+set -euo pipefail
+
+# CONFIGURE these for your account:
+USER_NAME=$(whoami)
+PORT=8770                                                       # change if 8770 is taken
+SRC=/data/oslab/users/jiyoun/oslab_v2_shared/src                # read-only shared copy
+ROOT=/data/oslab/users/${USER_NAME}/OSLab                       # YOUR workspace (will be created)
+LOG_DIR=$HOME/logs
+PY=/opt/oslab/current/.micromamba/envs/open-structure-lab/bin/python
+
+mkdir -p "$LOG_DIR" "$ROOT"
+
+if ss -ltn 2>/dev/null | grep -q ":$PORT "; then
+  echo "port $PORT already in use — pick another"
+  exit 1
+fi
+
+PYTHONPATH="$SRC" nohup "$PY" -m oslab.cli dashboard serve \
+  --host 127.0.0.1 --port "$PORT" --root "$ROOT" \
+  > "$LOG_DIR/dashboard-v2-$PORT.log" 2>&1 &
+
+PID=$!
+echo "Started oslab_v2 dashboard (PID $PID) on 127.0.0.1:$PORT"
+echo "Log: $LOG_DIR/dashboard-v2-$PORT.log"
+echo "From your laptop: ssh -fNL $PORT:localhost:$PORT lambda && open http://localhost:$PORT"

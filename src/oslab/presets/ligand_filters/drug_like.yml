@@ -1,0 +1,29 @@
+key: drug_like
+name: Drug-like small molecules
+description: Conservative default for general small-molecule docking screens.
+strict_mode: false
+molecular_weight:
+  min: 150
+  max: 550
+  units: Da
+clogp:
+  min: -1
+  max: 5
+  units: ""
+hbond_donors_max: 5
+hbond_acceptors_max: 10
+tpsa_max: 140
+rotatable_bonds_max: 10
+formal_charge:
+  min: -2
+  max: 2
+  units: elementary charge
+salts_and_mixtures: remove
+structural_alert_policy: flag
+deduplicate_by: canonical_smiles
+guidance:
+  - Use this preset for a first general docking screen when you want compounds with broadly drug-like properties.
+  - Tightening cLogP, TPSA, or rotatable bonds usually reduces library size and may improve developability.
+  - Relaxing these thresholds may keep unusual valid compounds but increases compute and false-positive risk.
+  - Structural alerts are flagged by default rather than silently excluded so users can review borderline chemistry.
+

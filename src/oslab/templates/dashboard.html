@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OSLab Dashboard</title>
+  <link rel="stylesheet" href="/static/dashboard.css?v=__CSS_VER__">
+</head>
+<body>
+  __DEMO_BANNER__
+  <header class="topbar">
+    <div class="brand">
+      <h1>OSLab</h1>
+      <code id="root"></code>
+    </div>
+    <nav class="primary-nav" id="primaryNav" aria-label="Main view">
+      <button class="nav-tab active" type="button" data-view="home">Home</button>
+      <button class="nav-tab" type="button" data-view="monitor">Progress Monitor</button>
+      <button class="nav-tab" type="button" data-view="reports">Reports</button>
+    </nav>
+  </header>
+
+  <div class="monitor-bar" id="monitorBar">
+    <div class="monitor-header">
+      <span class="monitor-pulse" id="monitorPulse"></span>
+      <span class="monitor-title"><strong>Your runs &amp; results</strong></span>
+      <span class="monitor-summary" id="monitorSummary">No runs detected</span>
+      <span class="monitor-meta muted" id="monitorMeta"></span>
+    </div>
+    <div class="monitor-body" id="monitorBody">
+      <div class="monitor-scope muted">
+        Showing only <strong>your</strong> runs (workspace <code id="monitorWorkspace"></code>). Other people's work lives under their own user workspace and never mixes in here.
+      </div>
+      <div id="liveStatusActive">
+        <div class="muted">No runs detected yet. Once you copy the script and run it (in terminal or via AI agent), each block will appear here with a progress bar.</div>
+      </div>
+      <div id="liveStatusRecent" class="live-status-recent"></div>
+    </div>
+  </div>
+
+  <main>
+    <div class="onboarding card">
+      <div class="onboarding-title">How OSLab works — 3 steps</div>
+      <ol class="onboarding-steps">
+        <li>
+          <span class="onboarding-num">1</span>
+          <div class="onboarding-body">
+            <strong>Click each block below and fill in your choices.</strong>
+            <span class="muted">Target protein, binding site, ligand library, docking settings.</span>
+          </div>
+        </li>
+        <li class="onboarding-arrow" aria-hidden="true">→</li>
+        <li>
+          <span class="onboarding-num">2</span>
+          <div class="onboarding-body">
+            <strong>Script appears on the right.</strong>
+            <span class="muted">Updates live as you type. Click <em>Copy</em>.</span>
+          </div>
+        </li>
+        <li class="onboarding-arrow" aria-hidden="true">→</li>
+        <li>
+          <span class="onboarding-num">3</span>
+          <div class="onboarding-body">
+            <strong>Paste the script into Codex (or another AI coding agent).</strong>
+            <span class="muted">The agent SSHes into the server, runs the pipeline, and streams progress back to this dashboard — no manual terminal work required.</span>
+          </div>
+        </li>
+        <li class="onboarding-arrow" aria-hidden="true">→</li>
+        <li>
+          <span class="onboarding-num">4</span>
+          <div class="onboarding-body">
+            <strong>Check live status in Progress Monitor.</strong>
+            <span class="muted">Switch to the <em>Progress Monitor</em> tab to watch each block run, then open finished reports from the <em>Reports</em> tab.</span>
+          </div>
+        </li>
+      </ol>
+      <div class="onboarding-quickstart">
+        <span class="muted">First time? Try a complete example:</span>
+        <button class="primary" id="quickStartCdk2" type="button">Quick start: CDK2 full pipeline (~1 hour)</button>
+        <span class="muted quick-start-hint" id="quickStartHint">
+          Fills all 4 blocks (Docking → Hit Refinement → MD → FEP) with reduced demo settings. GPU host required for blocks 3 &amp; 4.
+        </span>
+      </div>
+      <p class="onboarding-explainer muted">
+        This dashboard is a simple illustration of the user interface described in
+        the Seo et al. manuscript. The underlying code is a Python pipeline that
+        runs from a command-line interface. This dashboard collects user input and
+        generates a script that the user can cut/paste into an AI agent capable of
+        running the Python code with the user input. Below, you can see what the
+        input for a CDK2 docking session might look like.
+      </p>
+    </div>
+
+    <section id="script-generator" class="active">
+      <details id="buildRunDetails" class="build-run-details">
+        <summary class="build-run-summary">
+          <h2><span class="step-marker">Steps 1–2</span> Build your run</h2>
+          <span class="build-run-hint muted">Click to expand the form. The script preview on the right updates as you type.</span>
+        </summary>
+        <div class="muted" style="margin: 4px 0 12px; font-size: 13px;">
+          Fill in the required fields below. The script preview on the right (or bottom on narrow screens) updates as you type.
+        </div>
+
+        <div class="card">
+          <div id="scriptGeneratorBlocks"></div>
+          <div class="muted" style="margin-top:10px"><span id="sgDockingStatus"></span></div>
+        </div>
+
+      <details class="config-drawer" id="runEnvDrawer">
+        <summary>
+          <span class="drawer-title">Run Environment</span>
+          <span class="muted drawer-hint">Required: OSLab root, user, run label, execution target. Click to expand.</span>
+        </summary>
+        <div class="card" style="margin-top:8px">
+          <div class="row"><label>OSLab root</label><div class="path-picker-row"><input id="sgRoot" value="" placeholder="loaded from this dashboard"><button class="secondary" type="button" data-browse-target="sgRoot" data-browse-mode="folder">Browse</button></div></div>
+          <div class="row"><label>OSLab user</label><input id="sgUsername" value="" placeholder="detected from dashboard user"></div>
+          <div class="row"><label>Run label</label><input id="sgRunLabel" value="" placeholder="auto-generated from target and workflow"></div>
+          <div class="row"><label>Execution target</label><select id="sgExecutionTarget"><option value="lambda" selected>Lambda GPU server</option><option value="aws">AWS instance</option><option value="hpc">HPC / SLURM cluster</option><option value="local">Local workstation</option></select></div>
+          <div class="row"><label>CUDA visible devices</label><input id="sgCudaVisibleDevices" placeholder="optional, e.g. 0,1"></div>
+          <div class="row"><label>Total CPU workers</label><div><input id="sgWorkers" type="number" min="1" placeholder="auto: detected CPUs; non-root capped at 30"><div id="sgWorkersDefaultNote" class="muted"></div></div></div>
+          <div class="row"><label>Vina CPU per ligand</label><input id="sgVinaCpu" type="number" min="1" value="1"></div>
+          <div class="row"><label>GPU platform</label><select id="sgGpuPlatform"><option value="CUDA">CUDA</option><option value="CPU">CPU</option><option value="OpenCL">OpenCL</option></select></div>
+          <div class="row"><label>SLURM partition</label><input id="sgSlurmPartition" placeholder="optional"></div>
+          <div class="row"><label>SLURM account</label><input id="sgSlurmAccount" placeholder="optional"></div>
+          <div id="sgRunEnvironmentSummary" class="note" style="margin-top:10px">Run environment metadata has not been loaded yet.</div>
+        </div>
+      </details>
+
+      <details class="config-drawer optional" id="aiSshDrawer">
+        <summary>
+          <span class="drawer-title">For AI agent: SSH + Agent instructions</span>
+          <span class="muted drawer-hint">Optional. Fill these only if you plan to hand the generated script to Codex / another AI to run on the server.</span>
+        </summary>
+        <div class="card" style="margin-top:8px">
+          <h3>SSH Access</h3>
+          <div class="note">These values are detected from the dashboard server when available. Edit them if the server was reached through a different host, key, or forwarded port.</div>
+          <div class="row"><label>SSH user</label><input id="sgSshUser" placeholder="ubuntu"></div>
+          <div class="row"><label>Server public IP / hostname</label><input id="sgSshHost" placeholder="auto-detected when server metadata is available"></div>
+          <div class="row"><label>Local SSH key path</label><input id="sgSshKey" value="~/.ssh/codex-key"><div class="muted">Path on your local computer for creating the SSH tunnel; do not run this tunnel command from inside the server unless that key exists there.</div></div>
+          <div class="row"><label>Dashboard ports</label><div class="two">
+            <div><label for="sgLocalPort">Local browser port</label><input id="sgLocalPort" value="9877" title="Port opened on your Mac/local computer"><div class="muted">Use this in the local URL, for example http://127.0.0.1:9878/.</div></div>
+            <div><label for="sgRemotePort">Server dashboard port</label><input id="sgRemotePort" value="8766" title="Port where OSLab is listening on the Lambda server"><div class="muted">This is the port on the Lambda instance, usually 8766/8767/8768.</div></div>
+          </div></div>
+        </div>
+        <div class="card" style="margin-top:10px">
+          <h3>AI Agent Instructions</h3>
+          <div class="note">Add instructions for the AI that will run or adapt the generated commands. Useful examples: where the server is, which files already exist, whether to avoid long tests, or what progress reports you want.</div>
+<textarea id="sgAiInstructions">RUN AUTONOMOUSLY END-TO-END. The user is not in the terminal — they only watch the dashboard's monitor bar. Do NOT ask the user to confirm individual operations (scp, mkdir, bash, file edits, intermediate decisions). Just proceed.
+
+WRITE LOCATION (strict):
+- Use --root /data/oslab/users/jiyoun/OSLab for every oslab command.
+- All writes (scripts, runs/, reports/, logs/, data-cache/) must go under /data/oslab/users/jiyoun/OSLab/.
+- Read-only paths (do NOT write): /data/oslab/ (system shared root), /opt/oslab/ (system install). You may READ ligand libraries from /data/oslab/external_datasets/ and /data/oslab/benchmarks/.
+
+RESPECT THE EXACT VALUES in the generated script:
+- Honor the worker / CPU / GPU / exhaustiveness / seed numbers as written. Do NOT auto-scale to use idle CPUs. The values are intentional for reproducibility.
+- Run only the blocks whose include-checkbox is set in the script. Do NOT add blocks the user did not select. If only Block 1 is included, stop after Block 1 — do not silently start Block 2/3/4.
+
+ERROR HANDLING (autonomous recovery):
+- On permission errors, immediately retry under /data/oslab/users/jiyoun/OSLab/ (the user-writable root). Never use sudo.
+- On transient errors (network, file-lock), retry once with backoff, then continue.
+- On scientifically invalid state (missing receptor, broken ligand, mismatched counts), stop and write a one-paragraph reason to {OSLAB_ROOT}/logs/<run-label>.error.md, then exit. Do not silently change inputs.
+
+PROGRESS REPORTING (this is the only way the user sees what's happening):
+- Write progress.json continuously to {OSLAB_ROOT}/runs/<run-label>-<step>/progress.json with fields: status, current_step, percent, message, updated_at.
+- After each block completes, append a one-line summary to {OSLAB_ROOT}/logs/<run-label>.timeline.md.
+- After all included blocks finish, write a short summary to {OSLAB_ROOT}/reports/<run-label>/run_summary.md with: top results, total time, any warnings, file paths.
+
+SAFETY:
+- Never log private SSH keys or secrets.
+- Verify SSH host identity before connecting (use the user's known_hosts).
+- If interrupted, leave partial outputs and progress JSON in place; resume only from a scientifically valid checkpoint.</textarea>
+        </div>
+      </details>
+      </details>
+    </section>
+
+    <section id="reports" class="reports-section">
+      <div class="report-mode-only back-bar">
+        <button class="secondary" id="backToDashboard" type="button">← All reports</button>
+      </div>
+      <div class="report-mode-only report-hero" id="reportHero">
+        <div class="report-hero-step">Loading report…</div>
+      </div>
+      <div class="card reports-list-card" style="margin-bottom:12px">
+        <div class="two">
+          <div class="reports-list-col">
+            <h3>Available reports</h3>
+            <div id="reportList"></div>
+          </div>
+          <div class="reports-summary-col">
+            <h3 class="dashboard-mode-only">Selected report — summary</h3>
+            <h3 class="report-mode-only">Summary</h3>
+            <div id="reportText" class="report-summary">Select a report from the list on the left.</div>
+          </div>
+        </div>
+      </div>
+      <div class="report-workbench">
+        <div class="card">
+          <h3>Ligand table</h3>
+          <div id="ligandResults">Select a docking report to see ligand poses and scores.</div>
+        </div>
+        <div class="card" id="reportPoseCard">
+          <h3>3D pose &amp; interactions</h3>
+          <div class="render-toolbar">
+            <strong>Show:</strong>
+            <button class="secondary active" data-report-pose-mode="both">Target + Ligand</button>
+            <button class="secondary" data-report-pose-mode="target">Target</button>
+            <button class="secondary" data-report-pose-mode="ligand">Ligand</button>
+            <span id="reportViewStatus" class="muted">Select a ligand pose to switch views.</span>
+          </div>
+          <div class="pose-grid">
+            <iframe id="reportViewer" class="viewer"></iframe>
+            <div class="chem2d">
+              <strong>2D Chemical Structure</strong>
+              <div id="ligand2D" class="note">Select View Pose to show the ligand structure.</div>
+              <strong>PLIP (if available)</strong>
+              <iframe id="publicationPreview" class="figure-preview"></iframe>
+              <div id="publicationPreviewStatus" class="muted">Select View Pose to show PLIP interaction analysis when available.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card report-mode-only" style="margin-top:12px">
+        <h3>Download full target package</h3>
+        <div class="note">Creates a ZIP for the newest target family, bundling every successfully completed block under <code>reports/</code> and <code>runs/</code>. Download starts in your browser.</div>
+        <div class="actions">
+          <button class="primary" id="packageLastTarget">Package latest target results</button>
+          <span id="packageLastTargetStatus" class="muted"></span>
+        </div>
+      </div>
+    </section>
+
+    <details class="advanced-drawer" id="detailedMonitorDrawer">
+      <summary>Detailed Monitor — per-block live progress</summary>
+
+      <section id="workflow">
+        <h2>Block 1: Docking &amp; Hit Clustering</h2>
+        <div class="card">
+          <h3>Live status</h3>
+          <div id="terminalOrchestrationStatus" class="note">No active workflow. When a script-launched workflow runs, docking and hit clustering progress appear here.</div>
+          <div id="orchestrationProgress"></div>
+        </div>
+        <div style="margin-top:10px">
+          <div class="card"><h3>Current selections</h3><div id="orchestrationSelections"></div></div>
+        </div>
+        <!-- Hidden — Start button kept as hidden element so existing JS bindings don't break. -->
+        <div style="display:none">
+          <button id="startTerminalOrchestration"></button>
+          <span id="workflowStatus"></span>
+        </div>
+        <!-- Hidden by user request — duplicates Reports tab / monitor bar. Element IDs preserved so existing JS keeps working. -->
+        <div style="display:none">
+          <div id="orchestrationMethods"></div>
+          <iframe id="orchestrationSiteViewer"></iframe>
+          <div id="orchestrationSiteStatus"></div>
+          <div id="orchestrationReports"></div>
+          <div id="orchestrationJobs"></div>
+          <div id="orchestrationRuns"></div>
+        </div>
+      </section>
+
+      <section id="hit-refinement">
+        <h2>Block 2: Hit Refinement</h2>
+        <div class="card">
+          <h3>Live status</h3>
+          <div class="note">Higher exhaustiveness and multiple seeds on the top hits from Block 1.</div>
+          <div id="hitRefinementTerminalStatus" class="note" style="margin-top:8px">No active refinement.</div>
+        </div>
+        <div style="margin-top:10px">
+          <div class="card"><h3>Refinement progress</h3><div id="hitRefinementProgress"></div></div>
+          <div class="card" style="margin-top:10px"><h3>Refinement selections</h3><div id="hitRefinementSelections"></div></div>
+        </div>
+        <!-- Hidden — Start button kept for JS compat. -->
+        <div style="display:none">
+          <button id="startHitRefinement"></button>
+          <span id="hitRefinementStatus"></span>
+        </div>
+        <!-- Hidden by user request — duplicates Reports tab. IDs preserved. -->
+        <div style="display:none">
+          <div id="hitRefinementRuns"></div>
+          <div id="hitRefinementReports"></div>
+        </div>
+      </section>
+
+      <section id="md-optimization">
+        <h2>Block 3: MD Optimization</h2>
+        <div class="card">
+          <h3>Live status</h3>
+          <div class="note">Solvation + SMIRNOFF + OpenMM NVT→NPT MD + ProLIF + MMGBSA on top hits from Block 2.</div>
+          <div id="mdOptTerminalStatus" class="note" style="display:none"></div>
+          <div id="mdOptWizardRecord" style="margin-top:8px"></div>
+        </div>
+        <div style="margin-top:10px">
+          <div class="card"><h3>Pipeline progress</h3><div id="mdOptProgress"></div></div>
+          <div class="card" style="margin-top:10px"><h3>Per-ligand status</h3><div id="mdOptLigandProgress"></div></div>
+          <div class="card" style="margin-top:10px"><h3>MD selections and parameters</h3><div id="mdOptSelections"></div></div>
+        </div>
+        <!-- Hidden — Start button kept for JS compat. -->
+        <div style="display:none">
+          <button id="startMdOptimization"></button>
+          <span id="mdOptStatus"></span>
+        </div>
+        <!-- Hidden by user request — duplicates Reports tab / Reports report-mode 3D viewer. IDs preserved. -->
+        <div style="display:none">
+          <div id="mdOptReports"></div>
+          <div id="mdPoseViewCard">
+            <span id="mdPoseViewLigandName"></span>
+            <span id="mdPoseViewStatus"></span>
+            <iframe id="mdPoseViewer"></iframe>
+          </div>
+        </div>
+      </section>
+
+      <section id="fep">
+        <h2>Block 4: FEP — Relative Binding Free Energy</h2>
+        <div class="card">
+          <h3>Live status</h3>
+          <div class="note">OpenFE relative hybrid-topology RBFE on MD-passed hits from Block 3.</div>
+          <div id="fepTerminalStatus" class="note" style="margin-top:8px">No active FEP run.</div>
+        </div>
+        <div style="margin-top:10px">
+          <div class="card"><h3>Pipeline progress</h3><div id="fepProgress"><div class="note">Live progress appears here when FEP runs.</div></div></div>
+          <div class="card" style="margin-top:10px"><h3>Perturbation network</h3><div id="fepNetwork"><div class="note">Edge list appears after network planning completes.</div></div></div>
+          <div class="card" style="margin-top:10px"><h3>Live selections</h3><div id="fepSelections"><div class="note">Terminal-wizard choices stream here as the run progresses.</div></div></div>
+          <div class="card" style="margin-top:10px"><h3>Live activity</h3><div id="fepEvents"><div class="note">Recent terminal events stream here.</div></div></div>
+          <div class="card" id="fepAnalogLibraryCard" style="margin-top:10px;display:none">
+            <h3>Auto-generated analog library — <span id="fepAnalogParentLabel" class="muted"></span></h3>
+            <div id="fepAnalogLibrarySummary" class="note" style="margin-bottom:8px"></div>
+            <div id="fepAnalogLibraryTable"></div>
+          </div>
+          <div class="card" style="margin-top:10px">
+            <h3>Per-edge results</h3>
+            <div id="fepEdgeTable"><div class="note">Edge ΔΔG values appear after MBAR analysis.</div></div>
+          </div>
+          <div class="card" style="margin-top:10px">
+            <h3>Ranked ligands by predicted ΔΔG_bind</h3>
+            <div id="fepRanking"><div class="note">Ranking appears after analysis completes.</div></div>
+          </div>
+        </div>
+        <!-- Hidden — Start button kept for JS compat. -->
+        <div style="display:none">
+          <button id="startFep"></button>
+          <span id="fepStatus"></span>
+        </div>
+        <!-- Hidden — duplicates Reports tab / report-mode pose viewer. IDs preserved. -->
+        <div style="display:none">
+          <div id="fepPoseViewCard">
+            <span id="fepPoseViewEdge"></span>
+            <span id="fepPoseViewStatus"></span>
+            <iframe id="fepPoseViewer"></iframe>
+            <div id="fepLigand2D"></div>
+          </div>
+          <div id="fepReports"></div>
+        </div>
+      </section>
+
+      <section id="runs">
+        <h2>Background Jobs</h2>
+        <div class="muted" style="margin-bottom:8px; font-size: 13px;">Jobs launched directly through this dashboard UI. Runs from scripts/AI agents appear in <strong>Your runs &amp; results</strong> at the top.</div>
+        <div>
+          <div class="card"><h3>Background Jobs</h3><div id="jobs"></div></div>
+        </div>
+        <!-- Hidden — duplicates Reports tab. ID preserved. -->
+        <div style="display:none"><div id="runsTable"></div></div>
+      </section>
+    </details>
+
+    <details class="advanced-drawer" id="manualWorkflowDrawer">
+      <summary>Manual UI Workflow — legacy step-by-step tabs</summary>
+
+      <section id="target">
+          <h2>Target Protein</h2>
+          <div class="card" style="margin-bottom:12px">
+            <h3>Search by Gene</h3>
+            <div class="row"><label>Gene symbol</label><input id="geneQuery" placeholder="CDK2, FOXP3, EGFR"></div>
+            <div class="row"><label>Organism</label><select id="organismId"><option value="9606">Human</option><option value="10090">Mouse</option><option value="10116">Rat</option></select></div>
+            <div class="actions">
+              <button class="primary" id="searchTargets">Search PDB + AlphaFold</button>
+              <span id="searchStatus" class="muted"></span>
+            </div>
+            <div id="targetMatches" style="margin-top:12px"></div>
+          </div>
+          <div id="structureSources" class="grid"></div>
+          <div class="card" id="targetFetchCard" style="margin-top:12px">
+            <h3>Fetch or Register Structure</h3>
+            <div class="note" id="targetGeneStatus">Search by gene first, then choose the structure entry you want.</div>
+            <div class="row"><label>Selected source</label><input id="targetSource" readonly></div>
+            <div class="row"><label>Identifier or path</label><input id="targetIdentifier" placeholder="1HCK, P24941, or /path/protein.pdb"></div>
+            <div class="row"><label>Format</label><select id="targetFormat"><option value="cif">cif</option><option value="pdb">pdb</option></select></div>
+            <div class="row"><label>Local label</label><input id="targetLocalId" placeholder="optional for local files"></div>
+            <div class="actions">
+              <button class="primary" id="fetchStructure">Fetch/Register</button>
+              <button class="secondary" id="refresh">Refresh</button>
+              <span id="targetStatus" class="muted"></span>
+            </div>
+          </div>
+          <h3 style="margin-top:16px">Cached Structures</h3>
+          <div id="cachedStructures"></div>
+          <div class="card" id="targetPrepCard" style="margin-top:12px">
+            <h3>Prepare Target for Docking</h3>
+            <div class="row"><label>Structure path</label><input id="prepStructurePath" placeholder="Select a cached structure or paste path"></div>
+            <div class="row"><label>Output directory</label><input id="prepOutputPath" placeholder="runs/target-prep-1HCK"></div>
+            <div class="row"><label>Prep options</label><div><label><input id="prepNoMinimize" type="checkbox" checked> Skip minimization</label> &nbsp; <label><input id="prepAllowBad" type="checkbox" checked> Allow Meeko cleanup</label></div></div>
+            <div class="row"><label>Altloc / delete</label><div class="two"><input id="prepAltloc" placeholder="default altloc, e.g. A"><input id="prepDelete" placeholder="delete residues, e.g. A:400"></div></div>
+            <div class="actions">
+              <button class="primary" id="prepareTarget">Prepare Target</button>
+              <span id="prepStatus" class="muted"></span>
+            </div>
+            <div id="targetPrepTable" style="margin-top:12px"></div>
+          </div>
+        </section>
+
+        <section id="sites">
+          <h2>Binding Sites (FPocket)</h2>
+          <div class="two">
+            <div class="card">
+              <h3>Find Pockets</h3>
+              <div class="note">fpocket predicts binding pockets from protein shape. Use this first for AlphaFold models or structures without a known bound ligand.</div>
+              <div class="row"><label>Structure path</label><input id="siteStructurePath" placeholder="data-cache/pdb/1HCK.cif"></div>
+              <div class="row"><label>fpocket</label><div class="two"><div class="field"><label for="fpocketTopN">Number of pockets to find</label><input id="fpocketTopN" type="number" value="8" min="1" aria-label="Number of pockets to find" title="Number of pockets to find"></div><div class="field"><label for="fpocketMinSpheres">Minimum alpha spheres</label><input id="fpocketMinSpheres" type="number" value="15" min="1" aria-label="Minimum alpha spheres" title="Minimum alpha spheres"></div></div></div>
+              <div class="note">Default: find 8 pockets and ignore tiny pockets with fewer than 15 alpha spheres.</div>
+              <div class="note">fpocket score ranks pockets within this protein; higher is better, but there is no universal pass/fail cutoff. Druggability is a 0-1 estimate: &gt;0.5 is worth reviewing, &gt;0.7 is stronger, and &lt;0.2 is usually weak unless biology already supports the site.</div>
+              <div class="row"><label>Padding</label><input id="sitePadding" type="number" value="6" step="0.5"></div>
+              <div class="row"><label>Minimum size</label><input id="siteMinimum" type="number" value="12" step="0.5"></div>
+              <div class="row"><label>Output directory</label><input id="siteOutputPath" placeholder="runs/my-binding-site"></div>
+              <div class="actions">
+                <button class="primary" id="findPockets">Find Pockets</button>
+                <span id="siteStatus" class="muted"></span>
+              </div>
+              <div id="siteCandidates" style="margin-top:12px"></div>
+              <details class="advanced">
+                <summary>Advanced / Manual Site Definition</summary>
+                <div class="row"><label>Method</label><select id="siteMethod"><option value="fpocket">fpocket pocket</option><option value="ligand-centroid">Known ligand centroid</option><option value="residue-centroid">Residue centroid</option></select></div>
+                <div class="row"><label>Ligand</label><select id="siteLigand"></select></div>
+                <div class="row"><label>Residues</label><input id="siteResidues" placeholder="A:145, A:33"></div>
+                <div class="actions">
+                  <button class="secondary" id="proposeSites">Check Manual Options</button>
+                  <button class="secondary" id="createSite">Create Manual Site</button>
+                </div>
+              </details>
+            </div>
+            <div class="card">
+              <h3>3D Binding-Site View</h3>
+              <div class="render-toolbar">
+                <strong>Render:</strong>
+                <button class="secondary active" data-render-mode="bubble">Bubbles</button>
+                <button class="secondary" data-render-mode="cartoon">Cartoon</button>
+                <button class="secondary" data-render-mode="surface">Surface</button>
+                <span class="muted">Bubbles show fpocket alpha spheres.</span>
+              </div>
+              <iframe id="siteViewer" class="viewer"></iframe>
+            </div>
+          </div>
+          <h3 style="margin-top:16px">Saved Binding Sites</h3>
+          <div id="bindingSitesTable"></div>
+        </section>
+
+        <section id="ligands">
+          <h2>Ligand Libraries</h2>
+          <div class="card">
+            <h3>Library Catalog</h3>
+            <div class="note">Use Source and Filter to narrow the library table below. This does not search your hard drive.</div>
+            <div class="row"><label>Source</label><select id="librarySourceFilter"><option value="">All sources</option></select></div>
+            <div class="row"><label>Filter table</label><input id="librarySearch" placeholder="zinc, chembl, pdbqt, smiles, local file name"></div>
+            <div class="actions">
+              <button class="secondary" id="refreshLibraries">Refresh Catalog</button>
+              <button class="secondary" id="scanLocalLibraries">Scan Local Folder</button>
+              <span id="libraryStatus" class="muted"></span>
+            </div>
+            <div id="providerFeedback" class="note" style="margin-top:10px; display:none"></div>
+            <div class="note" style="margin-top:10px">To find ligand files already on this Mac, enter a folder path here and click Scan Local Folder. Scanning adds matching local files to the same table.</div>
+            <div class="row"><label>Local folder to scan</label><input id="libraryScanDir" placeholder="data-cache/ligands"></div>
+            <div id="ligandSources" style="margin-top:12px"></div>
+          </div>
+          <div class="card" id="subsetPicker" style="margin-top:12px; display:none">
+            <h3 id="starterTitle">Library Files</h3>
+            <div class="note" id="starterIntro">Use this after selecting a downloadable source above. Pick a goal or file subset first, then finish download/inspection in Screen Input below.</div>
+            <div class="row"><label>Download format</label><select id="zincSubsetFormat"><option value="smi" selected>SMILES (.smi) - needs ligand prep</option><option value="pdbqt">PDBQT (.pdbqt) - Vina-ready if trusted</option><option value="sdf">SDF (.sdf) - needs ligand prep</option><option value="mol2">MOL2 (.mol2)</option><option value="db2">DB2 (.db2)</option></select></div>
+            <div id="starterLibraries" style="margin-top:12px"></div>
+            <div id="zincAdvancedBrowser" style="display:none">
+              <input id="zincTranchePrefix" value="AA">
+              <input id="zincMaxFiles" type="number" min="1" max="300" value="50">
+              <button class="secondary" id="fetchSubsets">Show Subsets</button>
+              <span id="subsetStatus" class="muted"></span>
+              <div id="subsetTable"></div>
+            </div>
+          </div>
+          <div class="card" id="screenInputCard" style="margin-top:12px">
+            <h3>Screen Input</h3>
+            <div class="row"><label>Selected source</label><input id="ligandSource" readonly></div>
+            <div class="row"><label>Selected library</label><input id="ligandLibrary" readonly></div>
+            <div class="row"><label>Selected/download path</label><input id="ligandPlannedPath" readonly placeholder="Select a local library or downloadable goal"></div>
+            <input id="ligandPath" type="hidden">
+            <div class="row"><label>Source URL</label><input id="ligandSourceUrl" readonly></div>
+            <div class="row"><label>Prep output</label><input id="ligandPrepOut" placeholder="runs/ligand-prep-my-library"></div>
+            <div id="starterGoalPanel" style="margin-top:12px"></div>
+            <div id="starterDownloadStatus" class="note" style="margin-top:12px; display:none"></div>
+            <div class="note" id="ligandPrepHint">One-click starter downloads currently use SMILES or SDF, so RDKit/Meeko prep is expected before docking. Advanced ZINC downloads can use PDBQT; trusted PDBQT files are already Vina-ready and can skip prep.</div>
+            <div id="ligandPrepProgress"></div>
+            <div id="ligandPrepTable" style="margin-top:12px"></div>
+            <div class="actions">
+              <button class="secondary" id="inspectLigands" disabled>Inspect File</button>
+              <button class="primary" id="prepareLigands" style="display:none">Prepare Ligands for Docking</button>
+              <button class="primary" id="useLigandForParams" disabled>Use Library in Docking</button>
+              <span id="ligandStatus" class="muted"></span>
+            </div>
+          </div>
+        </section>
+
+        <section id="params">
+          <h2>Docking</h2>
+          <div class="two">
+            <div class="card">
+              <h3>Required Paths</h3>
+              <div class="row"><label>Receptor PDBQT</label><input id="receptorPath" placeholder="runs/cdk2-receptor/receptor.pdbqt"></div>
+              <div class="note" id="paramTargetStatus">No target receptor has been selected for docking yet.</div>
+              <div class="row"><label>Binding site JSON</label><input id="bindingSitePath" placeholder="runs/cdk2-site/binding_site.json"></div>
+              <div class="note" id="paramSiteStatus">No binding site has been selected yet.</div>
+              <div class="row"><label>Ligand input</label><input id="paramLigandPath" readonly placeholder="Use a ligand library from the Ligands tab"></div>
+              <div class="note" id="paramLigandStatus">No ligand library has been selected for docking yet.</div>
+              <div class="row"><label>Output directory</label><input id="outputPath" placeholder="reports/my-screen"></div>
+            </div>
+            <div class="card">
+              <h3>Docking and Prep</h3>
+              <div class="row"><label>Execution backend</label><select id="executionBackend"><option value="local">Local workstation</option><option value="slurm-export">SLURM array export</option></select></div>
+              <div class="note" id="backendNote">Local runs prepare ligands and dock on this Mac. SLURM export prepares ligands locally, then writes cluster scripts for array docking.</div>
+              <div class="row"><label>Max ligands</label><input id="maxLigands" type="number" min="1" value="20"></div>
+              <div class="row"><label>Filter preset</label><select id="preset"></select></div>
+              <div class="row"><label>pH</label><input id="ph" type="number" step="0.1" value="7.4"></div>
+              <div class="row"><label>Charge model</label><select id="chargeModel"><option>gasteiger</option><option>espaloma</option><option>zero</option><option>read</option></select></div>
+              <div class="row"><label>Ligand prep backend</label><select id="ligandPrepBackend"><option value="rdkit">RDKit parallel</option><option value="openbabel">Open Babel batch</option></select></div>
+              <div class="row"><label>Parallel workers</label><div class="two"><input id="ligandPrepWorkers" type="number" min="1" value="4" title="Ligand prep workers"><input id="dockingWorkers" type="number" min="1" value="1" title="Parallel docking workers"></div></div>
+              <div class="row"><label>Prep timeout</label><input id="ligandPrepTimeout" type="number" min="10" value="120"></div>
+              <div class="row"><label>Exhaustiveness</label><input id="exhaustiveness" type="number" min="1" value="1"></div>
+              <div class="row"><label>Modes</label><input id="numModes" type="number" min="1" value="1"></div>
+              <div class="row"><label>CPU</label><input id="cpu" type="number" min="1" value="1"></div>
+              <div class="row"><label>Seed</label><input id="seed" type="number" value="1"></div>
+              <div class="row"><label>Options</label><div><label><input id="noPlip" type="checkbox"> Skip PLIP</label> &nbsp; <label><input id="noGen3d" type="checkbox"> Skip 3D generation</label></div></div>
+              <div class="note">Mac recommendation: start with 20-100 ligands, exhaustiveness 1 for smoke tests, 4-8 for small careful screens, 1-2 docking workers, and 2-8 ligand-prep workers depending on memory. HPC recommendation: use SLURM export, array jobs, exhaustiveness 4-8 for broad first-pass screens and 8-16 for prioritized rescoring, with concurrency set by cluster policy.</div>
+            </div>
+            <div class="card" id="slurmSettings">
+              <h3>SLURM Export</h3>
+              <div class="row"><label>Job name</label><input id="slurmJobName" value="oslab-vina"></div>
+              <div class="row"><label>CPUs per task</label><input id="slurmCpusPerTask" type="number" min="1" value="1"></div>
+              <div class="row"><label>Array concurrency</label><input id="slurmArrayConcurrency" type="number" min="1" placeholder="optional, e.g. 500"></div>
+              <div class="row"><label>Wall time</label><input id="slurmTime" value="04:00:00"></div>
+              <div class="row"><label>Partition</label><input id="slurmPartition" placeholder="optional"></div>
+              <div class="row"><label>Account</label><input id="slurmAccount" placeholder="optional"></div>
+              <div class="row"><label>GPU request</label><input id="slurmGres" placeholder="optional, e.g. gpu:1"></div>
+              <div class="row"><label>Setup command</label><input id="slurmSetupCommand" placeholder="module load ...; micromamba activate open-structure-lab"></div>
+              <div class="row"><label>OSL command</label><input id="oslabCommand" value="oslab"></div>
+              <div class="note">Use this when docking thousands to millions of ligands on a cluster. GPU reservation is recorded for schedulers, but AutoDock Vina remains CPU-based unless you swap in a GPU-capable docking engine later.</div>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="primary" id="startScreen">Start Small Screen</button>
+            <span id="screenStatus" class="muted"></span>
+          </div>
+          <div id="screenProgress"></div>
+        </section>
+    </details>
+
+    <details class="advanced-drawer" id="systemHelpDrawer">
+      <summary>System &amp; Help</summary>
+
+      <section id="system">
+        <h2>System, Updates, and Validation</h2>
+        <div class="two">
+          <div class="card">
+            <h3>Open-Source Tool Status</h3>
+            <div class="note">Checks every open-source program used by the dashboard workflows: structure parsing, protein prep, pocket finding, ligand prep, docking, hit refinement, PLIP interaction analysis, MD/MMGBSA, and OpenFE FEP.</div>
+            <div class="actions">
+              <button class="primary" id="checkTools">Check Tools</button>
+              <button class="secondary" id="updateTools">Update Open-Source Tools</button>
+              <span id="systemStatus" class="muted"></span>
+            </div>
+            <div class="row" style="margin-top:10px"><label>Update scope</label><div><label><input id="updatePipPackages" type="checkbox" checked> Also update pip-managed Python workflow packages</label></div></div>
+            <div class="note" style="margin-top:10px">Update first runs <code>micromamba update --all</code> on the local <code>open-structure-lab</code> environment. The optional pip step updates Python-only workflow packages such as Meeko, PLIP, ProLIF, OpenFE, OpenFF Toolkit, and reporting dependencies. After updating, run tool checks and CDK2 validation before trusting new results.</div>
+            <div id="toolStatusTable" style="margin-top:12px"></div>
+            <div id="systemUpdateStatus" style="margin-top:12px"></div>
+          </div>
+          <div class="card">
+            <h3>CDK2 Workflow Validation</h3>
+            <div class="note">Runs a small known CDK2 screen and checks that docking completes with an expected Vina score threshold. Use this after installs, updates, or major workflow changes.</div>
+            <div class="row"><label>Expected docked ligands</label><input id="cdk2ExpectedDocked" type="number" min="1" value="5"></div>
+            <div class="row"><label>Best score threshold</label><input id="cdk2ExpectedScore" type="number" step="0.1" value="-5.0"></div>
+            <div class="actions">
+              <button class="primary" id="runCdk2Validation">Run CDK2 Validation</button>
+              <span id="validationStatus" class="muted"></span>
+            </div>
+            <div id="validationResult" style="margin-top:12px"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="help">
+        <h2>Help</h2>
+        <div class="card">
+          <h3>About OSLabLambda</h3>
+          <div class="note">OSLabLambda is open-source software created by Hyung L. Kim using open-source scientific programs and AI-assisted coding. It organizes maintained community tools into a practical drug-discovery workflow; each upstream tool retains its own license, authorship, documentation, and citation requirements.</div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <h3>Overall Workflow</h3>
+          <div class="note">OSLabLambda is organized as a block workflow: <strong>Docking → Hit Refinement → MD and Optimization → FEP</strong>. Each block produces files and reports that can be called up by the next block for additional simulation. The <strong>Reports</strong> tab is where completed results, ligand tables, structures, logs, and report files are reviewed.</div>
+          <table>
+            <thead><tr><th>Block</th><th>Input</th><th>Output used by next block</th></tr></thead>
+            <tbody>
+              <tr><td>Docking</td><td>Target protein, binding site, and ligand library.</td><td>Ranked Vina results and docked poses for Hit Refinement.</td></tr>
+              <tr><td>Hit Refinement</td><td>Top ligands from a docking report.</td><td>Re-ranked refined ligand list for MD and Optimization.</td></tr>
+              <tr><td>MD and Optimization</td><td>Top refined ligands and docked poses.</td><td>MD-prepared complexes, pose stability, interaction fingerprints, MMGBSA annotations, and an MD gate for FEP.</td></tr>
+              <tr><td>FEP</td><td>Related ligands from MD/Optimization or generated analogs.</td><td>Relative binding free-energy estimates and analog ranking.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <h3>Open-Source Components</h3>
+          <table>
+            <thead><tr><th>Program</th><th>Used for</th></tr></thead>
+            <tbody>
+              <tr><td>RCSB PDB / AlphaFold DB</td><td>Target structure sources.</td></tr>
+              <tr><td>PDBFixer, OpenMM, Gemmi</td><td>Protein repair, structure parsing, molecular mechanics preparation.</td></tr>
+              <tr><td>fpocket</td><td>Candidate binding-pocket detection and docking-box proposal.</td></tr>
+              <tr><td>RDKit, Meeko, Open Babel</td><td>Ligand filtering, 2D/3D chemistry handling, and PDBQT preparation.</td></tr>
+              <tr><td>AutoDock Vina</td><td>Primary docking and re-docking engine.</td></tr>
+              <tr><td>PLIP, ProLIF, MDAnalysis</td><td>Protein-ligand interaction analysis and trajectory fingerprints.</td></tr>
+              <tr><td>OpenFE, OpenFF Toolkit, OpenMMForceFields</td><td>Relative binding free-energy setup and execution.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </details>
+  </main>
+
+  <aside class="script-footer" id="scriptFooter" aria-label="Generated script preview">
+    <details open>
+      <summary>
+        <strong>Step 3 · Script preview</strong>
+        <span id="scriptGeneratorStatus" class="muted"></span>
+      </summary>
+      <div class="script-footer-body">
+        <div class="script-intro">
+          <div class="script-intro-row">
+            <span class="muted">This is an <strong>AI agent prompt</strong> — the run script plus instructions telling the agent how to SSH into the server, write only under your workspace, retry transient errors, and stream block-by-block progress back to this dashboard. Paste into Codex / Claude / another agent and let it run.</span>
+          </div>
+        </div>
+        <div class="script-pane" data-script-pane="ai">
+          <textarea id="generatedAiPrompt" class="script-output" readonly></textarea>
+          <div class="actions">
+            <button class="primary" id="copyGeneratedPrompt" type="button">Copy AI prompt</button>
+          </div>
+          <div id="copyAiPromptNotice" class="copy-ai-notice" hidden>
+            <strong>Copied.</strong> This script collects your input and uses AI to run a program called <strong>OSLab</strong>. You need OSLab installed on your computer or server before the agent can run it.
+          </div>
+        </div>
+        <!-- Hidden compat textareas/buttons — dashboard.js still writes to these. -->
+        <div class="script-pane" data-script-pane="script" style="display:none" hidden>
+          <textarea id="generatedScript" class="script-output" readonly></textarea>
+          <button id="copyGeneratedScript" type="button"></button>
+          <button id="generateScript" type="button"></button>
+        </div>
+        <div class="script-pane" data-script-pane="ssh" style="display:none" hidden>
+          <textarea id="generatedSshCommands" class="script-output" readonly></textarea>
+          <button id="copySshCommands" type="button"></button>
+          <button id="refreshSshCommands" type="button"></button>
+        </div>
+      </div>
+    </details>
+  </aside>
+
+  <div id="filePickerModal" class="modal-backdrop">
+    <div class="modal-panel file-picker-panel">
+      <div class="file-picker-titlebar">
+        <h3 id="filePickerTitle">Select File or Folder</h3>
+      </div>
+      <div class="file-picker-content">
+        <div class="note" id="filePickerHint">Browse the OSLab server filesystem. This selects files on the machine running the dashboard.</div>
+        <div class="file-picker-location">
+          <div class="row"><label>Current folder</label><div class="path-picker-row"><input id="filePickerPath"><button class="secondary" id="filePickerGo" type="button">Open</button></div></div>
+        </div>
+        <div class="file-picker-actions">
+          <div class="file-picker-actions-left">
+            <button class="secondary" id="filePickerUp" type="button">Up One Folder</button>
+            <span id="filePickerStatus" class="muted"></span>
+          </div>
+          <div class="file-picker-actions-right">
+            <button class="secondary" id="filePickerClose" type="button">Cancel</button>
+            <button class="primary" id="filePickerSelectCurrent" type="button">Choose Current Folder</button>
+          </div>
+        </div>
+        <div id="filePickerEntries" class="file-picker-entries"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/dashboard.js?v=__JS_VER__"></script>
+  <script src="/static/dashboard_v2.js?v=__JSV2_VER__"></script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+name: openfe-rbfe
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13
+  - openfe=1.11.0
+  - openfe-analysis=0.4.0
+  - gufe=1.10.0
+  - openmm=8.4.0
+  - openmmtools=0.26.0
+  - openmmforcefields=0.15.1
+  - openff-toolkit=0.18.0
+  - openff-interchange=0.5.2
+  - openff-forcefields
+  - openff-nagl
+  - openff-nagl-models
+  - ambertools=24.8
+  - rdkit=2024.09.2
+  - kartograf=1.2.0
+  - numpy
+  - scipy
+  - pandas
+  - networkx
+  - pyyaml
+  - click
+  - pip

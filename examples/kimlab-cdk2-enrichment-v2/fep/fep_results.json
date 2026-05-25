@@ -1,0 +1,148 @@
+{
+  "created_at": "2026-05-14T04:39:27.597922+00:00",
+  "reference_ligand": "000565_active_0656_active_00656",
+  "network_plan": {
+    "ligand_names": [
+      "000533_active_0615_active_00615",
+      "000385_active_0457_active_00457",
+      "000049_active_0065_active_00065",
+      "000462_active_0539_active_00539",
+      "000565_active_0656_active_00656"
+    ],
+    "reference_ligand": "000565_active_0656_active_00656",
+    "edges": [
+      {
+        "ligand_a": "000385_active_0457_active_00457",
+        "ligand_b": "000533_active_0615_active_00615",
+        "mcs_atoms": 38,
+        "tanimoto": 0.625,
+        "score": 0.812,
+        "similarity_score": 0.812
+      },
+      {
+        "ligand_a": "000049_active_0065_active_00065",
+        "ligand_b": "000385_active_0457_active_00457",
+        "mcs_atoms": 40,
+        "tanimoto": 0.69,
+        "score": 0.845,
+        "similarity_score": 0.845
+      },
+      {
+        "ligand_a": "000462_active_0539_active_00539",
+        "ligand_b": "000385_active_0457_active_00457",
+        "mcs_atoms": 39,
+        "tanimoto": 0.667,
+        "score": 0.833,
+        "similarity_score": 0.833
+      },
+      {
+        "ligand_a": "000565_active_0656_active_00656",
+        "ligand_b": "000462_active_0539_active_00539",
+        "mcs_atoms": 1,
+        "tanimoto": 0.649,
+        "score": 0.337,
+        "similarity_score": 0.337
+      }
+    ],
+    "backend": "OpenFE",
+    "backend_version": "1.11.0",
+    "openfe_network_dir": "/data/oslab/reports/kimlab-cdk2-enrichment-v2-fep/openfe/network",
+    "openfe_graphml": "/data/oslab/reports/kimlab-cdk2-enrichment-v2-fep/openfe/network/ligand_network.graphml",
+    "openfe_transformations": [
+      "/data/oslab/reports/kimlab-cdk2-enrichment-v2-fep/openfe/network/transformations/rbfe_000049_active_0065_active_00065_complex_000385_active_0457_active_00457_complex.json",
+      "/data/oslab/reports/kimlab-cdk2-enrichment-v2-fep/openfe/network/transformations/rbfe_000049_active_0065_active_00065_solvent_000385_active_0457_active_00457_solvent.json",
+      "/data/oslab/reports/kimlab-cdk2-enrichment-v2-fep/openfe/network/transformations/rbfe_000385_active_0457_active_00457_complex_000533_active_0615_active_00615_complex.json",
+      "/data/oslab/reports/kimlab-cdk2-enrichment-v2-fep/openfe/network/transformations/rbfe_000385_active_0457_active_00457_solvent_000533_active_0615_active_00615_solvent.json",
+      "/data/oslab/reports/kimlab-cdk2-enrichment-v2-fep/openfe/network/transformations/rbfe_000462_active_0539_active_00539_complex_000385_active_0457_active_00457_complex.json",
+      "/data/oslab/reports/kimlab-cdk2-enrichment-v2-fep/openfe/network/transformations/rbfe_000462_active_0539_active_00539_solvent_000385_active_0457_active_00457_solvent.json",
+      "/data/oslab/reports/kimlab-cdk2-enrichment-v2-fep/openfe/network/transformations/rbfe_000565_active_0656_active_00656_complex_000462_active_0539_active_00539_complex.json",
+      "/data/oslab/reports/kimlab-cdk2-enrichment-v2-fep/openfe/network/transformations/rbfe_000565_active_0656_active_00656_solvent_000462_active_0539_active_00539_solvent.json"
+    ],
+    "n_transformations": 8,
+    "openmm_platform": "cuda"
+  },
+  "edge_results": [
+    {
+      "mcs_atoms": 40,
+      "tanimoto": 0.69,
+      "similarity_score": 0.845,
+      "ligand_a": "000049_active_0065_active_00065",
+      "ligand_b": "000385_active_0457_active_00457",
+      "ddG_bind_kcal": -1.3,
+      "ddG_bind_err_kcal": 0.0,
+      "status": "completed",
+      "backend": "OpenFE",
+      "warnings": []
+    },
+    {
+      "mcs_atoms": 38,
+      "tanimoto": 0.625,
+      "similarity_score": 0.812,
+      "ligand_a": "000385_active_0457_active_00457",
+      "ligand_b": "000533_active_0615_active_00615",
+      "ddG_bind_kcal": 3.4,
+      "ddG_bind_err_kcal": 0.0,
+      "status": "completed",
+      "backend": "OpenFE",
+      "warnings": []
+    },
+    {
+      "mcs_atoms": 39,
+      "tanimoto": 0.667,
+      "similarity_score": 0.833,
+      "ligand_a": "000462_active_0539_active_00539",
+      "ligand_b": "000385_active_0457_active_00457",
+      "ddG_bind_kcal": -3.8,
+      "ddG_bind_err_kcal": 0.0,
+      "status": "completed",
+      "backend": "OpenFE",
+      "warnings": []
+    },
+    {
+      "mcs_atoms": 1,
+      "tanimoto": 0.649,
+      "similarity_score": 0.337,
+      "ligand_a": "000565_active_0656_active_00656",
+      "ligand_b": "000462_active_0539_active_00539",
+      "ddG_bind_kcal": -3.3,
+      "ddG_bind_err_kcal": 0.0,
+      "status": "completed",
+      "backend": "OpenFE",
+      "warnings": []
+    }
+  ],
+  "ligand_ranking": [
+    {
+      "rank": 1,
+      "ligand": "000385_active_0457_active_00457",
+      "ddG_bind_kcal": -7.1,
+      "smiles": "COc1ccc(-c2[nH]nc3c2C(=O)c2c(NC(=O)NNC(=O)Cc4ccccc4)cccc2-3)cc1"
+    },
+    {
+      "rank": 2,
+      "ligand": "000049_active_0065_active_00065",
+      "ddG_bind_kcal": -5.8,
+      "smiles": "COc1ccc(-c2[nH]nc3c2C(=O)c2c(NC(=O)NNC(=O)c4cccc5ccccc45)cccc2-3)cc1"
+    },
+    {
+      "rank": 3,
+      "ligand": "000533_active_0615_active_00615",
+      "ddG_bind_kcal": -3.7,
+      "smiles": "COc1ccc(-c2[nH]nc3c2C(=O)c2c(NC(=O)NN4CCN(C)CC4)cccc2-3)cc1"
+    },
+    {
+      "rank": 4,
+      "ligand": "000462_active_0539_active_00539",
+      "ddG_bind_kcal": -3.3,
+      "smiles": "COc1ccc(-c2[nH]nc3c2C(=O)c2c(NC(=O)NNC(=O)c4cccnc4)cccc2-3)cc1"
+    },
+    {
+      "rank": 5,
+      "ligand": "000565_active_0656_active_00656",
+      "ddG_bind_kcal": 0.0,
+      "smiles": "COc1ccc(-c2n[nH]c3c2C(=O)c2c(NC(=O)NNC(=O)c4ccc5ccccc5c4)cccc2-3)cc1"
+    }
+  ],
+  "n_edges_completed": 4,
+  "n_edges_failed": 0
+}
