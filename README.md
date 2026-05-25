@@ -1,82 +1,97 @@
 # Open Structure Lab (OSLab)
 
-An open-source structure-based virtual-screening pipeline with a single-page
-web dashboard that turns a four-block campaign (docking → hit refinement →
-short MD pass/fail → relative free-energy perturbation) into a script you
-paste into an AI coding agent. The agent runs the pipeline on your GPU host
+AI-mediated four-block virtual screening pipeline — **docking → hit
+refinement → short MD pass/fail → relative free-energy perturbation** —
+driven by a single-page web dashboard. You fill in a form, the dashboard
+generates a script, you paste the script into an AI coding agent
+(Codex, Claude Code, …), and the agent runs the pipeline on your GPU host
 and streams progress back into the dashboard.
 
-This repository accompanies the OSLab manuscript (Seo et al., in
-preparation). It contains the source code, the installation package, the
-DUD-E CDK2 enrichment benchmark data fetcher, the two benchmark reports
-that are referenced in the manuscript, and curated outputs from the
-benchmark run.
+Companion repository for **Seo et al.** (manuscript in preparation).
 
-## Repository layout
+## Where to start
+
+| I want to… | Go to |
+| --- | --- |
+| **Understand how OSLab works** | [`docs/methods.md`](docs/methods.md) |
+| **Install and run it locally** | [`install/INSTALL.md`](install/INSTALL.md) (or the quick install below) |
+| **Reproduce the CDK2 benchmark from the paper** | [Reproducing the benchmark](#reproducing-the-manuscript-benchmark) (below) |
+| **Read the two benchmark reports referenced in the paper** | [`docs/reports/`](docs/reports/) |
+| **Browse the per-block outputs from the benchmark run** | [`examples/kimlab-cdk2-enrichment-v2/`](examples/kimlab-cdk2-enrichment-v2/) |
+| **Download the full 940 MB raw outputs (every pose, every trajectory)** | [Releases → kimlab-cdk2-enrichment-v2](https://github.com/jiyounseo92/oslab/releases/tag/kimlab-cdk2-enrichment-v2) |
+
+## Repository map
 
 ```
-.
-├── README.md                # this file
-├── pyproject.toml           # Python package metadata (entry point: `oslab`)
-├── environment.yml          # cross-platform micromamba/conda dependencies
-├── environment.lock.yml     # exact lock file captured from the build machine
-├── environment.openfe-rbfe.yml  # optional OpenFE environment for Block 4 (FEP)
-├── install.sh               # one-shot installer (desktop or HPC mode)
-├── INSTALL.md               # installer-bundle install notes
-├── HARDENED_INSTALL.md      # locked / reproducible install notes
-├── start-oslab-v2.sh.template  # per-user dashboard launcher template
-├── src/oslab/               # the package (CLI + dashboard + pipeline modules)
-├── benchmarks/              # placeholder; `oslab fetch-benchmark` writes here
-├── examples/                # curated outputs from the manuscript benchmark run
-│   └── kimlab-cdk2-enrichment-v2/
-│       ├── docking/         # Block 1 outputs
-│       ├── hit-refinement/  # Block 2 outputs
-│       ├── md-optimization/ # Block 3 outputs
-│       └── fep/             # Block 4 outputs
-└── docs/
-    ├── methods.md           # full methods + usage write-up
-    └── reports/             # the two benchmark reports referenced in the paper
-        ├── CDK2_OSLab_Four_Block_Benchmark_Report.docx
-        └── CDK2_OSLab_Detailed_Methods_and_FEP_Benchmark_Report.docx
+oslab/
+├── src/oslab/          Python package — CLI, dashboard, pipeline modules
+├── install/            Installer script, environment specs, launcher templates
+├── docs/
+│   ├── methods.md      Full methods + usage write-up
+│   └── reports/        Two benchmark reports (DOCX) referenced in the paper
+├── examples/           Curated outputs from the published CDK2 benchmark
+│   └── kimlab-cdk2-enrichment-v2/   one folder per block: docking / hit-refinement / md-optimization / fep
+├── benchmarks/         Placeholder; `oslab fetch-benchmark` downloads here
+├── pyproject.toml      Python package metadata (entry point: `oslab`)
+├── LICENSE             Apache 2.0
+└── README.md           This file
 ```
-
-The full raw outputs of the benchmark run (~940 MB compressed, 77,948 files
-covering every per-ligand docked pose, hit-refinement seed, MD trajectory,
-and FEP transformation) are attached as a release asset on this repository
-under the tag matching the manuscript revision. See § "Full raw outputs"
-below.
 
 ## Quick install
 
 ```bash
-git clone https://github.com/<owner>/<repo>.git oslab
+git clone https://github.com/jiyounseo92/oslab.git
 cd oslab
 
-# Option A — one-shot installer (desktop):
-./install.sh
-
-# Option B — manual install into an existing micromamba environment:
-micromamba create -f environment.yml -n open-structure-lab
-micromamba activate open-structure-lab
-pip install -e .
+# One-shot install into a micromamba environment named open-structure-lab:
+./install/install.sh
 ```
 
-After install, the `oslab` command is on your PATH. Confirm with:
+After install, the `oslab` command is on your PATH. Confirm:
 
 ```bash
 oslab --help
-oslab check-tools     # reports which structure / chemistry CLIs are present
+oslab check-tools     # report which structure / chemistry CLIs are present
 ```
 
-See [`INSTALL.md`](INSTALL.md) for desktop vs HPC install options and
-[`HARDENED_INSTALL.md`](HARDENED_INSTALL.md) for the locked, reproducible
-build.
+For HPC / shared-filesystem installs and the optional OpenFE/RBFE
+environment used by Block 4 (FEP), see [`install/INSTALL.md`](install/INSTALL.md)
+and [`install/HARDENED_INSTALL.md`](install/HARDENED_INSTALL.md).
+
+## Run the dashboard
+
+The dashboard is a Python process you run locally — there is no shared
+web server.
+
+```bash
+oslab dashboard serve --host 127.0.0.1 --port 8770 --root <your_workspace>
+```
+
+Open `http://localhost:8770` in a browser. On a remote server, tunnel the
+port to your laptop first:
+
+```bash
+ssh -fNL 8770:localhost:8770 <server>
+open http://localhost:8770
+```
+
+The dashboard has three tabs:
+
+- **Home** — onboarding, the four-block configuration form, and the live
+  script preview.
+- **Progress Monitor** — per-block progress bars for every run in this
+  workspace, plus a detailed log drawer.
+- **Reports** — one card per pipeline campaign, with the per-block
+  markdown report, ranked ligand table, and 3D viewers.
+
+See [`docs/methods.md`](docs/methods.md) § 2 for a full step-by-step
+usage guide.
 
 ## Reproducing the manuscript benchmark
 
-The published CDK2 enrichment benchmark uses the DUD-E CDK2 active/decoy
+The published CDK2 enrichment benchmark uses the **DUD-E CDK2** active/decoy
 library: 631 known actives and 23,918 property-matched decoys, receptor
-1KE5. Fetch the dataset directly from DUD-E into your workspace with:
+1KE5. Fetch it directly from DUD-E into your workspace with one command:
 
 ```bash
 oslab fetch-benchmark cdk2-dude --to <your_workspace>
@@ -89,62 +104,20 @@ and the DUD-E URLs (`https://dude.docking.org/targets/cdk2/...`) have been
 live since 2012, which is why we prefer them over project-internal mirrors
 for long-term reproducibility.
 
-Run `oslab fetch-benchmark --list` to see all known benchmarks.
-
-Once the fetch completes, start the dashboard and click **Quick start:
-CDK2 full pipeline** to fill in every form field for a four-block run
-against the downloaded files. Copy the generated script and paste it into
-your preferred AI coding agent (Codex, Claude Code, etc.) to execute on
-your GPU host.
-
-## Running the dashboard
-
-Each user runs their own dashboard pointing at their own workspace. There
-is no shared web server — the dashboard is a single Python process bound to
-localhost.
-
 ```bash
-# pick a free local port and a workspace path
-oslab dashboard serve --host 127.0.0.1 --port 8770 --root <your_workspace>
+oslab fetch-benchmark --list   # list all registered benchmarks
 ```
 
-Then in a browser:
+Once the fetch completes, open the dashboard, click **Quick start: CDK2
+full pipeline**, and the form will reference the downloaded files. Copy
+the generated script and paste it into your preferred AI coding agent
+(Codex, Claude Code, …) to execute on your GPU host.
 
-```
-http://localhost:8770
-```
-
-On a shared HPC server, tunnel the port to your laptop first:
-
-```bash
-ssh -fNL 8770:localhost:8770 <server>
-open http://localhost:8770
-```
-
-See [`docs/methods.md`](docs/methods.md) for the dashboard's UI design and
-a step-by-step usage guide.
-
-## Curated benchmark outputs (`examples/`)
-
-The `examples/kimlab-cdk2-enrichment-v2/` directory contains the markdown
-reports and ranked-results CSVs from the published benchmark run, organised
-one folder per block:
-
-- `docking/` — Block 1 docking report and full Vina ranking
-- `hit-refinement/` — Block 2 hit-refinement report and per-seed table
-- `md-optimization/` — Block 3 MD pass/fail report
-- `fep/` — Block 4 FEP report and ΔΔG results
-
-Large per-ligand files (every individual docked pose, MD trajectory frame,
-FEP transformation) are not in this repo — they live in the release asset.
-
-## Full raw outputs (Release asset)
-
-The complete benchmark output bundle
-(`kimlab-cdk2-enrichment-v2-completed-results.zip`, ~940 MB compressed,
-77,948 files) is attached as a release asset under the tag matching the
-manuscript revision. Download it from the **Releases** page and unzip to
-inspect every individual pose, log, and trajectory frame.
+The full raw outputs of the published run (940 MB compressed, 77,948 files)
+are attached as a release asset:
+[kimlab-cdk2-enrichment-v2](https://github.com/jiyounseo92/oslab/releases/tag/kimlab-cdk2-enrichment-v2).
+Smaller curated outputs (markdown reports + ranked CSVs per block) are in
+[`examples/kimlab-cdk2-enrichment-v2/`](examples/kimlab-cdk2-enrichment-v2/).
 
 ## Citation
 
@@ -157,5 +130,4 @@ A formal BibTeX entry will be added here on acceptance.
 
 ## License
 
-This project is licensed under the Apache License, Version 2.0. See
-`pyproject.toml` for the canonical declaration.
+Apache License, Version 2.0. See [`LICENSE`](LICENSE).
