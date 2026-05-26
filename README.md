@@ -1,5 +1,8 @@
 # Open Structure Lab (OSLab)
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20401297.svg)](https://doi.org/10.5281/zenodo.20401297)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 AI-mediated four-block virtual screening pipeline — **docking → hit
 refinement → short MD pass/fail → relative free-energy perturbation** —
 driven by a single-page web dashboard. You fill in a form, the dashboard
@@ -8,6 +11,8 @@ generates a script, you paste the script into an AI coding agent
 and streams progress back into the dashboard.
 
 Companion repository for **Seo et al.** (manuscript in preparation).
+Citable archive: [Zenodo DOI 10.5281/zenodo.20401297](https://doi.org/10.5281/zenodo.20401297)
+(concept DOI, always resolves to the latest version).
 
 ## Where to start
 
