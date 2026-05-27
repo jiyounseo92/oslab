@@ -36,6 +36,17 @@ class Benchmark:
     files: tuple[BenchmarkFile, ...]
 
 
+def _dude_files(target: str) -> tuple[BenchmarkFile, ...]:
+    return (
+        BenchmarkFile(f"{_DUDE_BASE}/{target}/receptor.pdb", "receptor.pdb"),
+        BenchmarkFile(f"{_DUDE_BASE}/{target}/crystal_ligand.mol2", "crystal_ligand.mol2"),
+        BenchmarkFile(f"{_DUDE_BASE}/{target}/actives_final.mol2.gz", "actives_final.mol2.gz"),
+        BenchmarkFile(f"{_DUDE_BASE}/{target}/decoys_final.mol2.gz", "decoys_final.mol2.gz"),
+        BenchmarkFile(f"{_DUDE_BASE}/{target}/actives_final.ism", "actives_final.ism"),
+        BenchmarkFile(f"{_DUDE_BASE}/{target}/decoys_final.ism", "decoys_final.ism"),
+    )
+
+
 DUDE_CDK2 = Benchmark(
     name="cdk2-dude",
     description=(
@@ -43,19 +54,36 @@ DUDE_CDK2 = Benchmark(
         "(631 actives, 23,918 decoys; receptor 1HCK)."
     ),
     source_url=f"{_DUDE_BASE}/cdk2",
-    files=(
-        BenchmarkFile(f"{_DUDE_BASE}/cdk2/receptor.pdb", "receptor.pdb"),
-        BenchmarkFile(f"{_DUDE_BASE}/cdk2/crystal_ligand.mol2", "crystal_ligand.mol2"),
-        BenchmarkFile(f"{_DUDE_BASE}/cdk2/actives_final.mol2.gz", "actives_final.mol2.gz"),
-        BenchmarkFile(f"{_DUDE_BASE}/cdk2/decoys_final.mol2.gz", "decoys_final.mol2.gz"),
-        BenchmarkFile(f"{_DUDE_BASE}/cdk2/actives_final.ism", "actives_final.ism"),
-        BenchmarkFile(f"{_DUDE_BASE}/cdk2/decoys_final.ism", "decoys_final.ism"),
+    files=_dude_files("cdk2"),
+)
+
+
+DUDE_KIF11 = Benchmark(
+    name="kif11-dude",
+    description=(
+        "DUD-E KIF11 (Eg5) active/decoy benchmark library "
+        "(116 actives, 6,850 decoys; receptor 3CJO)."
     ),
+    source_url=f"{_DUDE_BASE}/kif11",
+    files=_dude_files("kif11"),
+)
+
+
+DUDE_HIVRT = Benchmark(
+    name="hivrt-dude",
+    description=(
+        "DUD-E HIV reverse-transcriptase active/decoy benchmark library "
+        "(338 actives, 18,672 decoys; receptor 3LAN)."
+    ),
+    source_url=f"{_DUDE_BASE}/hivrt",
+    files=_dude_files("hivrt"),
 )
 
 
 REGISTRY: dict[str, Benchmark] = {
     DUDE_CDK2.name: DUDE_CDK2,
+    DUDE_KIF11.name: DUDE_KIF11,
+    DUDE_HIVRT.name: DUDE_HIVRT,
 }
 
 

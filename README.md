@@ -92,6 +92,22 @@ The dashboard has three tabs:
 See [`docs/methods.md`](docs/methods.md) § 2 for a full step-by-step
 usage guide.
 
+## Public demo
+
+A read-only public demo of the dashboard is hosted at:
+
+**<https://opening-bailey-bag-appearing.trycloudflare.com>**
+(login: `oslab` / `oslab2026demo`)
+
+The demo serves the same source tree with `OSLAB_DEMO_MODE=1`, which
+prepends a banner, scrubs the operator's workspace path from outgoing
+JSON, and disables run launches. It is intended for browsing the four-tab
+UI and the published CDK2 reports without launching any compute.
+
+The demo URL is a Cloudflare quick tunnel and rotates whenever the tunnel
+process is restarted. If this link 404s, check the latest pinned issue on
+this repository or open a new issue.
+
 ## Reproducing the manuscript benchmark
 
 The published CDK2 enrichment benchmark uses the **DUD-E CDK2** active/decoy
@@ -109,8 +125,13 @@ and the DUD-E URLs (`https://dude.docking.org/targets/cdk2/...`) have been
 live since 2012, which is why we prefer them over project-internal mirrors
 for long-term reproducibility.
 
+The two additional manuscript benchmarks (KIF11 and HIV-RT) are
+registered with the same downloader and can be fetched the same way:
+
 ```bash
-oslab fetch-benchmark --list   # list all registered benchmarks
+oslab fetch-benchmark kif11-dude --to <your_workspace>   # 116 actives, 6,850 decoys, receptor 3CJO
+oslab fetch-benchmark hivrt-dude --to <your_workspace>   # 338 actives, 18,672 decoys, receptor 3LAN
+oslab fetch-benchmark --list                             # list all registered benchmarks
 ```
 
 Once the fetch completes, open the dashboard, click **Quick start: CDK2
