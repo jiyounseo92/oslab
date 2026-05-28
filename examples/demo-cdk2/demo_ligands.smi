@@ -1,0 +1,5 @@
+[NH3+]C(CNc1ncc(-c2ccc3[nH]c(=O)oc3c2)s1)Cc1ccc(C(F)(F)F)cc1 active_00001
+[NH3+]C(CNc1ncc(-c2ccc3[nH]c(=O)sc3c2)s1)Cc1ccc(C(F)(F)F)cc1 active_00006
+Cn1c(=O)[nH]c2ccc(-c3cnc(NCC([NH3+])Cc4ccc(C(F)(F)F)cc4)s3)cc21 active_00007
+CCCCOc1c(C(=O)c2nccs2)cnc2[nH]ncc12 active_00008
+CCCCOc1c(C(=O)c2nccs2)cnc2n[nH]cc12 active_00009

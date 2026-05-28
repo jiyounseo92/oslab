@@ -1,0 +1,22 @@
+{
+  "method": "ligand-centroid",
+  "structure_path": "receptor.pdbqt",
+  "metadata_path": "site.json",
+  "box": {
+    "center": [
+      1.97,
+      27.56,
+      8.83
+    ],
+    "size": [
+      14.0,
+      14.0,
+      14.0
+    ]
+  },
+  "selected_atom_count": 0,
+  "selected_residues": [],
+  "padding": 0.0,
+  "created_at": "2026-05-13T02:52:12.065125+00:00",
+  "notes": "Fixed CDK2 benchmark box: 14 A cube centered on the 1HCK crystallographic ligand centroid (DUD-E CDK2 receptor, PDB 1HCK)."
+}
