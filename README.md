@@ -142,55 +142,74 @@ environment used by Block 4 (FEP), see
 
 ## 3. Demo
 
-This demo docks 5 known CDK2 ligands and produces a ranked report, so you
-can confirm a working install in about 5 minutes. All inputs are bundled
-in [`examples/demo-cdk2/`](examples/demo-cdk2/) (the CDK2 receptor, PDB
-1HCK; the docking box; and the 5 ligands) — nothing to download or prepare.
+This walks through OSLab the way it is actually used: you configure a run
+in the **dashboard**, click one button to copy an **AI prompt**, paste that
+prompt into an **AI coding agent** (Codex, Claude Code, Cursor, …), and the
+agent runs the pipeline for you while the dashboard shows live progress and
+the final report. You never type pipeline commands yourself — the agent
+does, following the copied prompt.
 
-> **How OSLab runs things.** The dashboard (§ 4) is the interface where you
-> *configure* a run and *watch* it. The actual computation is launched
-> either by an AI agent (the full workflow, § 4) or by the one command
-> below. This demo uses the command because it is the quickest, most
-> reproducible way to verify the install; it calls the exact same docking
-> engine the dashboard uses.
+**What you need:** the OSLab install from § 2, and an AI coding agent that
+can run shell commands on the same computer (e.g. Claude Code or Codex in a
+terminal).
 
-**Run the demo.** In the terminal, from the `oslab` folder you cloned in
-§ 2, paste this and press Enter:
+**Step 1 — start the dashboard** (in the terminal, from the `oslab` folder):
+
+```bash
+oslab dashboard serve --root ./demo-ws --port 8770
+```
+
+Leave it running and open **http://localhost:8770** in your browser.
+
+**Step 2 — fill in a run.** On the **Home** tab, click
+**"Quick start: CDK2"**. This fills the whole form with a ready-to-run CDK2
+example (you don't need to know any of the settings).
+
+**Step 3 — copy the AI prompt.** On the right-hand panel, click
+**"Copy AI prompt"**. This copies a self-contained instruction block (what
+to run, where to write, how to report progress) plus the run script.
+
+**Step 4 — hand it to your AI agent.** Paste into Claude Code / Codex /
+your agent of choice and let it run. The agent executes the pipeline
+autonomously and writes progress back to your workspace.
+
+**Step 5 — watch and read the result.** In the dashboard, the
+**Progress Monitor** tab shows each block running; when it finishes, the
+**Reports** tab shows the ranked CDK2 results (top docking scores, best
+ligands, and—if you ran the later blocks—MD and FEP results).
+
+**Expected output:** a CDK2 docking report in the **Reports** tab, with the
+ligands ranked by score (the strongest binders near the top, around
+−9 kcal/mol for this set).
+
+**Expected run time:** the docking step on the small demo set is a few
+minutes of compute; the full four-block CDK2 example is ~1 hour on a GPU
+machine. Total wall-clock also depends on your AI agent and hardware.
+
+> **Just want to look at the dashboard, with no install and no AI agent?**
+> Open the live browser demo — it shows the same UI and a finished CDK2
+> run: [Try it without installing](#try-it-without-installing).
+
+<details>
+<summary><b>For maintainers / CI: verify the docking engine without the dashboard or an agent</b></summary>
+
+The engine the agent ultimately calls can be run directly on the bundled
+[`examples/demo-cdk2/`](examples/demo-cdk2/) inputs. This is a deterministic
+check, not the normal user workflow:
 
 ```bash
 oslab screen small \
-  --ligands      examples/demo-cdk2/demo_ligands.smi \
-  --receptor     examples/demo-cdk2/receptor.pdbqt \
+  --ligands examples/demo-cdk2/demo_ligands.smi \
+  --receptor examples/demo-cdk2/receptor.pdbqt \
   --binding-site examples/demo-cdk2/site.json \
-  --max-ligands 5 --exhaustiveness 8 --no-plip \
-  --out ./demo-out
+  --max-ligands 5 --exhaustiveness 8 --no-plip --out ./demo-out
 ```
 
-**Expected output** — a new `./demo-out/` folder containing:
-- `report/vina_results.csv` — the 5 ligands ranked by docking score
-- `report/docking_report.md` — a human-readable report
-- `docking/<ligand>/<ligand>_docked.pdbqt` — the docked 3D poses
-
-Open `demo-out/report/vina_results.csv`; all 5 ligands dock and the scores
-reproduce these values (AutoDock Vina is deterministic for a fixed seed;
-kcal/mol):
-
-| Ligand | Vina score |
-| --- | --- |
-| active_00001 | −9.198 |
-| active_00007 | −8.828 |
-| active_00006 | −8.668 |
-| active_00008 | −7.123 |
-| active_00009 | −7.114 |
-
-**Expected run time:** ~5 minutes on a single CPU core (one ligand at a
-time). Add `--docking-workers 5` to dock all 5 in parallel and finish in
-~1–2 minutes.
-
-**Want to see the dashboard itself?** It is the configuration + monitoring
-+ reports interface (§ 4). The fastest way to look at it is the live
-browser demo — no install needed — see
-[Try it without installing](#try-it-without-installing).
+All 5 ligands dock; `demo-out/report/vina_results.csv` reproduces
+active_00001 −9.198, active_00007 −8.828, active_00006 −8.668,
+active_00008 −7.123, active_00009 −7.114 (kcal/mol). ~5 min on one CPU
+core, or ~1–2 min with `--docking-workers 5`.
+</details>
 
 ---
 
