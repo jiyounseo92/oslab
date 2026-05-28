@@ -32,4 +32,11 @@ oslab = "oslab.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-oslab = ["presets/**/*.yml", "demo/**/*"]
+oslab = [
+  "presets/**/*.yml",
+  "demo/**/*",
+  "templates/*",
+  "templates/**/*",
+  "static/*",
+  "static/**/*",
+]
