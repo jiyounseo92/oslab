@@ -94,7 +94,7 @@ usage guide.
 
 ## Public demo
 
-A read-only public demo of the dashboard is hosted at:
+A **read-only public demo** of the dashboard is hosted at:
 
 **<https://opening-bailey-bag-appearing.trycloudflare.com>**
 (login: `oslab` / `oslab2026demo`)
@@ -104,9 +104,34 @@ prepends a banner, scrubs the operator's workspace path from outgoing
 JSON, and disables run launches. It is intended for browsing the four-tab
 UI and the published CDK2 reports without launching any compute.
 
-The demo URL is a Cloudflare quick tunnel and rotates whenever the tunnel
-process is restarted. If this link 404s, check the latest pinned issue on
-this repository or open a new issue.
+## Reviewer access (manuscript under review)
+
+While this manuscript is under peer review, a **read/write reviewer
+instance** of the dashboard is available so that reviewers can launch a
+real CDK2 benchmark run end-to-end without installing OSLab locally:
+
+**<https://bet-logs-shaved-city.trycloudflare.com>**
+(login: `reviewer` / `oslab-review-2026`)
+
+This instance runs the same source tree **without** `OSLAB_DEMO_MODE`,
+so the four-block pipeline (docking → hit refinement → MD pass/fail
+gate → FEP) can be launched from the dashboard's Quick Start button.
+The DUD-E CDK2, KIF11, and HIV-RT inputs are pre-fetched under the
+reviewer workspace's `benchmarks/` directory.
+
+The reviewer instance is hosted on a single 1× NVIDIA A10 GPU on the
+KimLab Lambda server. Concurrent reviewers share that GPU, so a full
+24 549-ligand DUD-E CDK2 docking will be slower than the original
+8× A100 benchmark run reported in the manuscript; we recommend the
+small Wang-FEP demo Quick Start (16 ligands, ~1 hour) for a quick
+end-to-end sanity check.
+
+This reviewer access will be revoked once the manuscript is accepted;
+after that, please install OSLab locally per the instructions above.
+
+Both demo and reviewer URLs are Cloudflare quick tunnels and rotate
+whenever the tunnel process is restarted. If a link 404s, please open
+an issue on this repository.
 
 ## Reproducing the manuscript benchmark
 
