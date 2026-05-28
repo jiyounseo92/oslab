@@ -51,10 +51,13 @@ oslab/
 
 ## 1. System requirements
 
-**Operating systems (tested)**
-- Ubuntu 22.04.5 LTS (Linux kernel 6.8)
-- macOS and other Linux distributions are supported through the same
-  conda-forge / bioconda packages; the pipeline uses no OS-specific code.
+**Operating systems**
+
+| OS | Native install | Notes |
+| --- | --- | --- |
+| **Linux** (tested: Ubuntu 22.04.5 LTS) | ✅ Yes | Recommended. |
+| **macOS** (Intel and Apple Silicon) | ✅ Yes | All dependencies have macOS builds. |
+| **Windows** | ❌ No | Two docking dependencies (AutoDock Vina, fpocket) have no Windows build. Windows users: either use the [browser demo](#try-it-without-installing) (no install, any OS), or install inside **WSL2** (Ubuntu on Windows) and follow the Linux steps. |
 
 **Software dependencies** (resolved automatically by the installer; key
 versions the pipeline has been tested on):
@@ -91,25 +94,44 @@ and [`install/environment.lock.yml`](install/environment.lock.yml).
 
 ## 2. Installation guide
 
+Everything below is typed into a **terminal**. First open one:
+
+- **macOS:** press `Cmd`+`Space`, type `Terminal`, press Enter.
+- **Linux:** open your "Terminal" application.
+- **Windows:** OSLab does not install natively (see § 1). Install
+  **WSL2** first (Microsoft's "Ubuntu on Windows"; run `wsl --install`
+  in PowerShell, reboot, open the new "Ubuntu" app), then run everything
+  below inside that Ubuntu terminal. If you only want to look at OSLab,
+  skip installing and use the [browser demo](#try-it-without-installing).
+
+**Step 1 — download the code.** Copy-paste this into the terminal and
+press Enter:
+
 ```bash
 git clone https://github.com/jiyounseo92/oslab.git
 cd oslab
+```
 
-# One-shot install into a micromamba environment named open-structure-lab:
+**Step 2 — install.** This builds an isolated environment with all
+dependencies (RDKit, OpenMM, AutoDock Vina, …). It runs unattended:
+
+```bash
 ./install/install.sh
 ```
 
-Confirm the install:
+**Step 3 — check it worked:**
 
 ```bash
 oslab --help
-oslab check-tools     # report which structure / chemistry CLIs are present
+oslab check-tools     # lists the docking / chemistry tools and confirms each is found
 ```
 
+If `oslab check-tools` shows the tools as present, you are done.
+
 **Typical install time:** ~3 minutes on the test server (30-core Xeon,
-fast connection, cold package cache). On a typical desktop/laptop, expect
-roughly **5–15 minutes**, dominated by the ~2.3 GB environment download
-(actual compute is negligible).
+fast connection); on a normal laptop/desktop expect **5–15 minutes**,
+almost all of it downloading the ~2.3 GB environment (the computer barely
+works — it is just waiting on the network).
 
 For HPC / shared-filesystem installs and the optional OpenFE/RBFE
 environment used by Block 4 (FEP), see
@@ -120,12 +142,20 @@ environment used by Block 4 (FEP), see
 
 ## 3. Demo
 
-A self-contained Block 1 (docking) demo that needs no download and no
-receptor preparation. Inputs are bundled in
-[`examples/demo-cdk2/`](examples/demo-cdk2/) (DUD-E CDK2 receptor, PDB 1HCK;
-docking box; 5 known CDK2 actives).
+This demo docks 5 known CDK2 ligands and produces a ranked report, so you
+can confirm a working install in about 5 minutes. All inputs are bundled
+in [`examples/demo-cdk2/`](examples/demo-cdk2/) (the CDK2 receptor, PDB
+1HCK; the docking box; and the 5 ligands) — nothing to download or prepare.
 
-**Instructions to run** (from the repository root, environment active):
+> **How OSLab runs things.** The dashboard (§ 4) is the interface where you
+> *configure* a run and *watch* it. The actual computation is launched
+> either by an AI agent (the full workflow, § 4) or by the one command
+> below. This demo uses the command because it is the quickest, most
+> reproducible way to verify the install; it calls the exact same docking
+> engine the dashboard uses.
+
+**Run the demo.** In the terminal, from the `oslab` folder you cloned in
+§ 2, paste this and press Enter:
 
 ```bash
 oslab screen small \
@@ -136,13 +166,14 @@ oslab screen small \
   --out ./demo-out
 ```
 
-**Expected output** — a `./demo-out/` directory with:
-- `report/vina_results.csv` — ranked docking scores (one row per ligand)
-- `report/docking_report.md` — human-readable report
-- `docking/<ligand>/<ligand>_docked.pdbqt` — docked poses
+**Expected output** — a new `./demo-out/` folder containing:
+- `report/vina_results.csv` — the 5 ligands ranked by docking score
+- `report/docking_report.md` — a human-readable report
+- `docking/<ligand>/<ligand>_docked.pdbqt` — the docked 3D poses
 
-All 5 ligands dock. The ranked scores reproduce (AutoDock Vina is
-deterministic for a fixed seed; kcal/mol):
+Open `demo-out/report/vina_results.csv`; all 5 ligands dock and the scores
+reproduce these values (AutoDock Vina is deterministic for a fixed seed;
+kcal/mol):
 
 | Ligand | Vina score |
 | --- | --- |
@@ -152,21 +183,14 @@ deterministic for a fixed seed; kcal/mol):
 | active_00008 | −7.123 |
 | active_00009 | −7.114 |
 
-**Expected run time:** ~5 minutes on a single CPU core (Intel Xeon
-Platinum 8358, exhaustiveness 8, one ligand at a time). Add
-`--docking-workers N` to dock in parallel and cut this proportionally.
+**Expected run time:** ~5 minutes on a single CPU core (one ligand at a
+time). Add `--docking-workers 5` to dock all 5 in parallel and finish in
+~1–2 minutes.
 
-**Same demo from the dashboard (the product UX).** The dashboard runs this
-identical docking engine server-side — no AI agent required for a Block 1
-screen. Start it (`oslab dashboard serve --root ./demo-ws --port 8770`),
-open `http://localhost:8770`, then on the **Home** tab fill the Docking
-form's *Receptor PDBQT*, *Binding site JSON*, *Ligand input*, and *Output
-directory* with the four `examples/demo-cdk2/` files, set *Max ligands* 5
-and *Exhaustiveness* 8, and start the run. Watch it complete in the
-**Progress Monitor** tab ("Completed docking: 5/5") and open the ranked
-report in the **Reports** tab. The result is identical to the CLI command
-above. (Or skip the install entirely and click through the live
-[reviewer instance](#try-it-without-installing).)
+**Want to see the dashboard itself?** It is the configuration + monitoring
++ reports interface (§ 4). The fastest way to look at it is the live
+browser demo — no install needed — see
+[Try it without installing](#try-it-without-installing).
 
 ---
 
