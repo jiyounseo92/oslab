@@ -156,6 +156,18 @@ deterministic for a fixed seed; kcal/mol):
 Platinum 8358, exhaustiveness 8, one ligand at a time). Add
 `--docking-workers N` to dock in parallel and cut this proportionally.
 
+**Same demo from the dashboard (the product UX).** The dashboard runs this
+identical docking engine server-side — no AI agent required for a Block 1
+screen. Start it (`oslab dashboard serve --root ./demo-ws --port 8770`),
+open `http://localhost:8770`, then on the **Home** tab fill the Docking
+form's *Receptor PDBQT*, *Binding site JSON*, *Ligand input*, and *Output
+directory* with the four `examples/demo-cdk2/` files, set *Max ligands* 5
+and *Exhaustiveness* 8, and start the run. Watch it complete in the
+**Progress Monitor** tab ("Completed docking: 5/5") and open the ranked
+report in the **Reports** tab. The result is identical to the CLI command
+above. (Or skip the install entirely and click through the live
+[reviewer instance](#try-it-without-installing).)
+
 ---
 
 ## 4. Instructions for use
