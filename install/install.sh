@@ -3,6 +3,7 @@
 set -euo pipefail
 
 bundle_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "$bundle_dir/.." && pwd)"
 
 default_workspace_root="$HOME/Open Structure Lab"
 if [[ -d "$HOME/Documents" ]]; then
@@ -198,14 +199,26 @@ case "$mode" in
   *) fail "Unsupported mode: $mode" ;;
 esac
 
-require_file "$bundle_dir/open-structure-lab-source.tar.gz"
+# The source can come from a packaged tarball (the installer bundle) or
+# directly from a git checkout (the repo root has pyproject.toml + src/oslab).
+if [[ -f "$bundle_dir/open-structure-lab-source.tar.gz" ]]; then
+  source_mode="bundle"
+elif [[ -f "$repo_root/pyproject.toml" && -d "$repo_root/src/oslab" ]]; then
+  source_mode="repo"
+else
+  fail "Could not find the OSLab source. Expected either $bundle_dir/open-structure-lab-source.tar.gz (installer bundle) or $repo_root/pyproject.toml (git checkout)."
+fi
 require_file "$bundle_dir/environment.yml"
 
 if [[ -z "$micromamba_root" ]]; then
   micromamba_root="$install_dir/.micromamba"
 fi
 
-source_dir="$install_dir/src/open-structure-lab"
+if [[ "$source_mode" == "repo" ]]; then
+  source_dir="$repo_root"
+else
+  source_dir="$install_dir/src/open-structure-lab"
+fi
 micromamba_bin=""
 environment_file="$bundle_dir/environment.yml"
 platform_id="$(detect_platform)"
@@ -224,23 +237,26 @@ else
   fi
 fi
 
-run_cmd mkdir -p "$install_dir/src"
 run_cmd mkdir -p "$workspace_root"
 
-if [[ -e "$source_dir" ]]; then
-  if [[ "$force" -eq 1 ]]; then
-    run_cmd rm -rf "$source_dir"
-  else
-    fail "Source directory already exists: $source_dir (use --force to replace it)"
+if [[ "$source_mode" == "bundle" ]]; then
+  run_cmd mkdir -p "$install_dir/src"
+  if [[ -e "$source_dir" ]]; then
+    if [[ "$force" -eq 1 ]]; then
+      run_cmd rm -rf "$source_dir"
+    else
+      fail "Source directory already exists: $source_dir (use --force to replace it)"
+    fi
   fi
-fi
-
-log "Unpacking bundled source into $source_dir"
-run_cmd mkdir -p "$source_dir"
-if [[ "$dry_run" -eq 1 ]]; then
-  printf '[dry-run] tar -xzf %q -C %q\n' "$bundle_dir/open-structure-lab-source.tar.gz" "$source_dir"
+  log "Unpacking bundled source into $source_dir"
+  run_cmd mkdir -p "$source_dir"
+  if [[ "$dry_run" -eq 1 ]]; then
+    printf '[dry-run] tar -xzf %q -C %q\n' "$bundle_dir/open-structure-lab-source.tar.gz" "$source_dir"
+  else
+    tar -xzf "$bundle_dir/open-structure-lab-source.tar.gz" -C "$source_dir"
+  fi
 else
-  tar -xzf "$bundle_dir/open-structure-lab-source.tar.gz" -C "$source_dir"
+  log "Installing OSLab from the git checkout at $source_dir"
 fi
 
 log "Creating or updating micromamba environment $env_name"
