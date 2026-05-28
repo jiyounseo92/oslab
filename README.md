@@ -119,19 +119,38 @@ dependencies (RDKit, OpenMM, AutoDock Vina, …). It runs unattended:
 ./install/install.sh
 ```
 
-**Step 3 — check it worked:**
+**Typical install time:** ~3 minutes on the test server (30-core Xeon,
+fast connection); on a normal laptop/desktop expect **5–15 minutes**,
+almost all of it downloading the ~2.3 GB environment (the computer barely
+works — it is just waiting on the network).
+
+**Step 3 — make the `oslab` command available.** OSLab installs into an
+isolated environment, so typing `oslab` right after the install will say
+`command not found` until you add it to your PATH. Copy-paste this one line
+(it is also printed at the end of the install):
+
+```bash
+export PATH="$HOME/.open-structure-lab/bin:$PATH"
+```
+
+To make it permanent so you don't repeat this in new terminals, add that
+same line to your shell startup file — `~/.zshrc` on macOS, `~/.bashrc` on
+most Linux:
+
+```bash
+echo 'export PATH="$HOME/.open-structure-lab/bin:$PATH"' >> ~/.zshrc
+```
+
+**Step 4 — check it worked:**
 
 ```bash
 oslab --help
 oslab check-tools     # lists the docking / chemistry tools and confirms each is found
 ```
 
-If `oslab check-tools` shows the tools as present, you are done.
-
-**Typical install time:** ~3 minutes on the test server (30-core Xeon,
-fast connection); on a normal laptop/desktop expect **5–15 minutes**,
-almost all of it downloading the ~2.3 GB environment (the computer barely
-works — it is just waiting on the network).
+If `oslab check-tools` shows the tools as present, you are done. (If you
+prefer not to touch PATH, you can always run it by its full path instead:
+`~/.open-structure-lab/bin/oslab check-tools`.)
 
 For HPC / shared-filesystem installs and the optional OpenFE/RBFE
 environment used by Block 4 (FEP), see

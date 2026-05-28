@@ -309,6 +309,23 @@ if [[ "$install_openfe_rbfe" -eq 1 ]]; then
   fi
 fi
 
+# Create a small launcher so users can run `oslab` without the long
+# micromamba prefix. It lives at $install_dir/bin/oslab.
+launcher_dir="$install_dir/bin"
+launcher="$launcher_dir/oslab"
+if [[ "$dry_run" -eq 1 ]]; then
+  printf '[dry-run] create launcher %q wrapping: %q run -n %q oslab\n' "$launcher" "$micromamba_bin" "$env_name"
+else
+  mkdir -p "$launcher_dir"
+  cat > "$launcher" <<LAUNCH
+#!/usr/bin/env bash
+export MAMBA_ROOT_PREFIX="$micromamba_root"
+exec "$micromamba_bin" run -n "$env_name" oslab "\$@"
+LAUNCH
+  chmod +x "$launcher"
+  log "Created oslab launcher at $launcher"
+fi
+
 cat <<EOF
 
 Open Structure Lab installation is ready.
@@ -320,11 +337,22 @@ Optional OpenFE/RBFE environment: $(if [[ "$install_openfe_rbfe" -eq 1 ]]; then 
 Micromamba root: $micromamba_root
 Mode: $mode
 
-Start the dashboard with:
-  MAMBA_ROOT_PREFIX="$micromamba_root" "$micromamba_bin" run -n "$env_name" oslab dashboard serve --port 8766
+IMPORTANT — the 'oslab' command lives in an isolated environment, so typing
+'oslab' alone will say "command not found" until you add it to your PATH.
+A launcher was created for you at:
+  $launcher
 
-Check the toolchain with:
-  MAMBA_ROOT_PREFIX="$micromamba_root" "$micromamba_bin" run -n "$env_name" oslab check-tools
+Make 'oslab' available in this terminal (copy-paste this one line):
+  export PATH="$launcher_dir:\$PATH"
+
+Then these will work:
+  oslab check-tools
+  oslab dashboard serve --port 8766
+
+To make it permanent, add that same 'export PATH=...' line to your shell
+startup file (~/.zshrc on macOS, ~/.bashrc on most Linux). Or, without
+touching PATH, run oslab by its full path each time:
+  "$launcher" check-tools
 
 For HPC deployments, point --install-dir and --workspace-root to shared storage and use the oslab hpc export-slurm-* commands from the installed environment.
 EOF
