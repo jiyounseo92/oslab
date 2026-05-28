@@ -35,9 +35,6 @@ the AI agent executes them.
 OSLab runs entirely in your web browser, served by a small local program on
 your own computer or server. The interface has three tabs.
 
-![The Home tab: a three-step guide, a one-click CDK2 example, the run
-configuration form, and the live AI-prompt panel on the right.](manual-assets/home.png)
-
 - **Home** — where you configure a run. A short "How OSLab works" guide, a
   **Quick start: CDK2** button that fills the whole form for you, the
   block-by-block configuration form, and—on the right—the live
@@ -149,22 +146,14 @@ your agent of choice and let it run. The agent executes the pipeline
 autonomously and writes progress back into your workspace.
 
 **Step 5 — watch it run.** Switch to the **Progress Monitor** tab. Each
-block appears with a progress bar; a completed campaign looks like this:
-
-![The Progress Monitor: one card per campaign, one progress bar per block,
-with a "view report" button as each block finishes.](manual-assets/progress-monitor.png)
+block appears as a card with a progress bar — one bar per block — so you can
+see which block is running and click through to its report as it finishes.
 
 **Step 6 — read the results.** Switch to the **Reports** tab. Each campaign
-is one card listing its four blocks, each with a **View report** button:
-
-![The Reports tab: results grouped by campaign, one row per block.](manual-assets/reports.png)
-
+is one card listing its four blocks, each with a **View report** button.
 Click **View report** on the docking block to open the ranked results — the
 top docking score, the best ligand, the number of ligands docked, and the
-full ligand table with 3-D pose viewers:
-
-![A docking report: summary metric cards on top, the ranked ligand table,
-and a 3-D pose viewer.](manual-assets/report-detail.png)
+full ligand table with 3-D pose viewers.
 
 **What to expect.** For the bundled five-ligand demo set
 (`examples/demo-cdk2/`), all five ligands dock and the ranked report lists
