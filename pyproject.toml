@@ -39,4 +39,6 @@ oslab = [
   "templates/**/*",
   "static/*",
   "static/**/*",
+  "bundled_demo/*",
+  "bundled_demo/**/*",
 ]

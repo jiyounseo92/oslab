@@ -204,6 +204,7 @@ class DashboardState:
             "layout": layout.model_dump(),
             "user": username,
             "user_root": str(user_root),
+            "bundled_demo_dir": str(Path(__file__).resolve().parent / "bundled_demo"),
             "user_layout": user_layout,
             "connection": _dashboard_connection_info(self.root, dashboard_port=self.dashboard_port),
             "run_environment": _run_environment_metadata(self.root),

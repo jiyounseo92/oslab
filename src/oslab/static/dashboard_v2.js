@@ -13,6 +13,10 @@
   // Cache of state.runs from /api/state — used by enhanceMdReport to look up
   // progress_json paths when wiring "View Final Frame" buttons.
   let cachedStateRuns = [];
+  // Absolute path to the bundled demo data inside the installed package
+  // (state.bundled_demo_dir). Quick Start fills receptor/ligand paths from
+  // this so it works on any install without server-specific /data/oslab paths.
+  let bundledDemoDir = "";
 
   function jobStatusClass(status) {
     if (!status) return "";
@@ -277,6 +281,7 @@
       if (stateRes && stateRes.ok) {
         try {
           const state = await stateRes.json();
+          if (state && state.bundled_demo_dir) bundledDemoDir = state.bundled_demo_dir;
           const demoMode = document.body.classList.contains("demo-mode");
           const ws = $("monitorWorkspace");
           if (ws) {
@@ -386,7 +391,7 @@
     [
       "sg_docking_local_structure",
       "Local structure file",
-      "/data/oslab/external_datasets/Wang-FEP-dataset/CDK2/CDK2.pdb",
+      "__BUNDLED_DEMO__/cdk2/receptor.pdbqt",
     ],
     [
       "sg_docking_binding_site_method",
@@ -405,10 +410,10 @@
     [
       "sg_docking_ligand_input",
       "Ligand file",
-      "/data/oslab/external_datasets/Wang-FEP-dataset/CDK2/cdk2_ligands.sdf",
+      "__BUNDLED_DEMO__/cdk2/demo_ligands.smi",
     ],
-    ["sg_docking_download_format", "Ligand format", "sdf", "SDF (.sdf)"],
-    ["sg_docking_max_ligands", "Max ligands", "16"],
+    ["sg_docking_download_format", "Ligand format", "smi", "SMILES (.smi) - prepare with RDKit/Meeko"],
+    ["sg_docking_max_ligands", "Max ligands", "5"],
     ["sg_docking_exhaustiveness", "Vina exhaustiveness", "8"],
     ["sg_docking_num_modes", "Vina poses per ligand", "1"],
     ["sg_docking_seed", "Vina seed", "1"],
@@ -453,6 +458,12 @@
     CDK2_VALUES.forEach(([id, label, value, displayLabel]) => {
       const el = $(id) || document.querySelector(`[id="${id}"]`);
       if (!el) return;
+      // Resolve the bundled-demo placeholder to the installed package path so
+      // Quick Start works on any machine (no server-specific /data/oslab path).
+      if (typeof value === "string" && value.indexOf("__BUNDLED_DEMO__") !== -1) {
+        if (!bundledDemoDir) return;  // bundled dir unknown yet; skip (caller pre-fetches it)
+        value = value.replace("__BUNDLED_DEMO__", bundledDemoDir);
+      }
       // Save original so Reset can restore it.
       if (el.getAttribute("data-original-value") == null) {
         el.setAttribute("data-original-value", el.value == null ? "" : el.value);
@@ -519,7 +530,7 @@
       <div class="quick-start-summary">
         <div class="quick-start-summary-header">
           <strong>CDK2 demo values filled in.</strong>
-          <span class="muted">Wang-FEP CDK2 · 16 ligands · ~1 hour on GPU.</span>
+          <span class="muted">Bundled CDK2 demo · 5 ligands · docking ~5 min on CPU (blocks 3–4 need a GPU).</span>
           <a href="#" id="quickStartReset" class="quick-start-reset">Reset</a>
         </div>
         <div class="quick-start-summary-action">
@@ -554,10 +565,20 @@
     const hint = $("quickStartHint");
     const banner = btn ? btn.closest(".onboarding, .quick-start") : null;
     if (!btn) return;
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       // Make sure the Build-your-run drawer is open so the form fields exist
       // and are visible before we try to fill them.
       openBuildRunDetails();
+      // Ensure we know where the bundled demo data lives before filling paths.
+      if (!bundledDemoDir) {
+        try {
+          const res = await fetch("/api/state", { cache: "no-store" });
+          if (res.ok) {
+            const st = await res.json();
+            if (st && st.bundled_demo_dir) bundledDemoDir = st.bundled_demo_dir;
+          }
+        } catch (e) {/* fall through; applyCdk2Values skips path fields if unknown */}
+      }
       const tryApply = (attempt) => {
         // Include all four blocks first so every field exists and is visible
         // before we try to fill it.
