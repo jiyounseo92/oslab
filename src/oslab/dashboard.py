@@ -969,7 +969,7 @@ def _make_handler(state: DashboardState) -> type[BaseHTTPRequestHandler]:
                 self._send_json(state._jobs_snapshot(username))
                 return
             if parsed.path == "/api/progress-scan":
-                self._send_json(_scan_progress_files(state.root, query))
+                self._send_json(_scan_progress_files(state.root, query, username=username))
                 return
             if parsed.path.startswith("/api/jobs/"):
                 job = state.get_job_snapshot(parsed.path.rsplit("/", 1)[-1], username)
@@ -1171,24 +1171,36 @@ def _make_handler(state: DashboardState) -> type[BaseHTTPRequestHandler]:
     return Handler
 
 
-def _scan_progress_files(root: Path, query: dict[str, list[str]]) -> dict[str, Any]:
+def _scan_progress_files(root: Path, query: dict[str, list[str]], username: str | None = None) -> dict[str, Any]:
     """Scan OSLab root for active and recent progress.json files.
 
     Returns a list of runs with status, current step, percent, last message,
     and the report directory if known. The dashboard's monitor bar consumes this
     to surface runs that were started outside the dashboard (e.g. by an AI agent
     over SSH), since those don't appear in the in-memory job registry.
+
+    Multi-user layout: each user's runs live under <root>/users/<user>/runs/,
+    so we scan that directory first, then fall back to the legacy <root>/runs/
+    for backwards compatibility.
     """
-    runs_dir = (root / "runs").resolve()
     items: list[dict[str, Any]] = []
     seen: set[str] = set()
-    if runs_dir.is_dir():
+    scan_dirs: list[Path] = []
+    if username:
+        user_runs = (_dashboard_user_root(root, username) / "runs").resolve()
+        if user_runs.is_dir():
+            scan_dirs.append(user_runs)
+    legacy_runs = (root / "runs").resolve()
+    if legacy_runs.is_dir() and legacy_runs not in scan_dirs:
+        scan_dirs.append(legacy_runs)
+    progress_paths: list[Path] = []
+    for runs_dir in scan_dirs:
         # Walk with followlinks=True so symlinked run dirs (used by the demo
         # workspace to surface read-only reference runs) are scanned.
-        progress_paths: list[Path] = []
         for dirpath, _dirnames, filenames in os.walk(runs_dir, followlinks=True):
             if "progress.json" in filenames:
                 progress_paths.append(Path(dirpath) / "progress.json")
+    if progress_paths:
         for progress_path in sorted(
             progress_paths,
             key=lambda p: p.stat().st_mtime if p.exists() else 0,
