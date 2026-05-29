@@ -6,6 +6,7 @@ import gzip
 import html
 import math
 import os
+import secrets
 import shutil
 import subprocess
 import sys
@@ -97,8 +98,58 @@ STRUCTURE_SOURCES = [
 _GENE_CACHE: dict[str, str] = {}
 
 
+_SESSION_COOKIE_NAME = "oslab_session"
+_SESSION_COOKIE_RE = re.compile(r"^[a-z0-9]{8,64}$")
+
+
+def _session_id_for_request(handler: BaseHTTPRequestHandler | None) -> str:
+    """Get-or-mint an anonymous session ID for this request.
+
+    Returns the session ID (a short hex token) and caches it on the handler
+    so the same token is reused across get_request_user calls within one
+    request and so the response code can emit Set-Cookie when minted.
+
+    Session-cookie mode is OPT-IN via the OSLAB_SESSION_COOKIES env var so we
+    do not disturb the existing single-user / multi-user-by-header deployments.
+    """
+    if handler is None:
+        return ""
+    if not _env_truthy(os.environ.get("OSLAB_SESSION_COOKIES")):
+        return ""
+    cached = getattr(handler, "_oslab_session_id", None)
+    if cached is not None:
+        return cached
+    cookie_header = handler.headers.get("Cookie", "") or ""
+    sid = ""
+    for part in cookie_header.split(";"):
+        k, _, v = part.strip().partition("=")
+        if k == _SESSION_COOKIE_NAME and v:
+            candidate = v.strip()
+            if _SESSION_COOKIE_RE.fullmatch(candidate):
+                sid = candidate
+                break
+    if sid:
+        handler._oslab_session_id = sid
+        handler._oslab_session_new = False
+        return sid
+    sid = secrets.token_hex(12)
+    handler._oslab_session_id = sid
+    handler._oslab_session_new = True
+    return sid
+
+
+def _env_truthy(value: str | None) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def get_request_user(handler: BaseHTTPRequestHandler | None = None) -> str:
     """Identify the dashboard user for path scoping, not authentication."""
+
+    # Anonymous-session mode (public reviewer instance): each browser gets a
+    # unique session ID via cookie, which becomes its workspace identifier.
+    sid = _session_id_for_request(handler)
+    if sid:
+        return safe_user_name(f"anon-{sid}") or f"anon{sid}"
 
     candidates: list[str] = []
     if handler is not None:
@@ -1090,11 +1141,24 @@ def _make_handler(state: DashboardState) -> type[BaseHTTPRequestHandler]:
             raw = self.rfile.read(length).decode("utf-8") if length else "{}"
             return _unredact_for_demo(json.loads(raw or "{}"))
 
+        def _maybe_set_session_cookie(self) -> None:
+            """If a new session was minted for this request, emit Set-Cookie."""
+            sid = getattr(self, "_oslab_session_id", "")
+            if not sid or not getattr(self, "_oslab_session_new", False):
+                return
+            # 30 days; HttpOnly+SameSite=Lax keeps it scoped to the dashboard.
+            self.send_header(
+                "Set-Cookie",
+                f"{_SESSION_COOKIE_NAME}={sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000",
+            )
+            self._oslab_session_new = False  # only send once per request
+
         def _send_json(self, data: Any, status: HTTPStatus = HTTPStatus.OK) -> None:
             body = json.dumps(_json_safe(_redact_for_demo(data)), indent=2, allow_nan=False).encode("utf-8")
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
             self.send_header("Cache-Control", "no-store")
+            self._maybe_set_session_cookie()
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
@@ -1104,6 +1168,7 @@ def _make_handler(state: DashboardState) -> type[BaseHTTPRequestHandler]:
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
+            self._maybe_set_session_cookie()
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
