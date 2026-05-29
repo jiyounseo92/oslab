@@ -213,7 +213,10 @@ oslab screen small \
   --max-ligands 5 --exhaustiveness 8 --no-plip --out ./demo-out
 ```
 
-All five ligands dock; `demo-out/report/vina_results.csv` reproduces
-active_00001 −9.198, active_00007 −8.828, active_00006 −8.668,
-active_00008 −7.123, active_00009 −7.114 (kcal/mol). About 5 minutes on one
-CPU core, or 1–2 minutes with `--docking-workers 5`.
+A successful check is that **all five ligands dock** and
+`demo-out/report/vina_results.csv` ranks them with the top binders around
+**−9 kcal/mol**. Exact AutoDock Vina scores vary slightly by platform and
+package build, so treat the numbers as approximate (roughly −9.0 to −9.4 for
+the top ligand, ~−7 for the weakest); the run is correct as long as all five
+dock and the strongest binders sort to the top. About 5 minutes on one CPU
+core, or 1–2 minutes with `--docking-workers 5`.

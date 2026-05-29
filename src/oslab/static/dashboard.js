@@ -1584,8 +1584,18 @@
           lines.push(`oslab structures fetch-pdb ${dq(structureId)} --root "$OSLAB_ROOT" --format ${dq(getScriptField("docking", "structure_format") || "cif")} --overwrite > "$STRUCTURE_JSON"`);
           lines.push('STRUCTURE_PATH=$(python3 -c \'import json,sys; print(json.load(open(sys.argv[1])).get("cached_path",""))\' "$STRUCTURE_JSON")');
         } else if (structureSource === "local") {
-          lines.push(`oslab structures register-local ${dq(localStructure)} --root "$OSLAB_ROOT" --identifier ${dq(getScriptField("docking", "target_gene") || "local-target")} --overwrite > "$STRUCTURE_JSON"`);
-          lines.push('STRUCTURE_PATH=$(python3 -c \'import json,sys; print(json.load(open(sys.argv[1])).get("cached_path",""))\' "$STRUCTURE_JSON")');
+          const localLower = String(localStructure || "").toLowerCase();
+          if (localLower.endsWith(".pdbqt") || localLower.endsWith(".pdbqt.gz")) {
+            // A .pdbqt is already a Vina-ready receptor. `oslab structures
+            // register-local` only accepts PDB/mmCIF, so skip registration and
+            // use the file directly; the *.pdbqt) case below treats it as the
+            // prepared receptor.
+            lines.push("# Local structure is already a Vina-ready receptor PDBQT; use it directly (no registration).");
+            lines.push(`STRUCTURE_PATH=${dq(localStructure)}`);
+          } else {
+            lines.push(`oslab structures register-local ${dq(localStructure)} --root "$OSLAB_ROOT" --identifier ${dq(getScriptField("docking", "target_gene") || "local-target")} --overwrite > "$STRUCTURE_JSON"`);
+            lines.push('STRUCTURE_PATH=$(python3 -c \'import json,sys; print(json.load(open(sys.argv[1])).get("cached_path",""))\' "$STRUCTURE_JSON")');
+          }
         } else {
           lines.push(`oslab structures fetch-alphafold ${dq(structureId)} --root "$OSLAB_ROOT" --overwrite > "$STRUCTURE_JSON"`);
           lines.push('STRUCTURE_PATH=$(python3 -c \'import json,sys; print(json.load(open(sys.argv[1])).get("cached_path",""))\' "$STRUCTURE_JSON")');

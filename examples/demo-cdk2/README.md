@@ -35,16 +35,19 @@ A `./demo-out/` directory containing:
 - `docking/<ligand>/<ligand>_docked.pdbqt` — docked poses
 - `ligand-vina-prep/` — prepared ligand intermediates
 
-All 5 ligands dock. The ranked `vina_results.csv` reproduces these scores
-(AutoDock Vina is deterministic for a fixed seed; values are in kcal/mol):
+All 5 ligands dock. A correct run produces a ranked `vina_results.csv` with
+the top binders around **−9 kcal/mol** and the weakest around **−7**. Exact
+AutoDock Vina scores vary slightly with platform and package build, so the
+table below is a reference run, not values to match exactly — the check is
+that all five dock and the strongest binders sort to the top (kcal/mol):
 
-| Ligand | Vina score (kcal/mol) |
+| Ligand | Vina score (reference) |
 | --- | --- |
-| active_00001 | −9.198 |
-| active_00007 | −8.828 |
-| active_00006 | −8.668 |
-| active_00008 | −7.123 |
-| active_00009 | −7.114 |
+| active_00001 | ≈ −9.2 to −9.4 |
+| active_00007 | ≈ −8.8 to −9.4 |
+| active_00006 | ≈ −8.6 |
+| active_00008 | ≈ −7.1 |
+| active_00009 | ≈ −7.1 |
 
 ## Expected run time
 

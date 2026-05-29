@@ -148,16 +148,16 @@
 <textarea id="sgAiInstructions">RUN AUTONOMOUSLY END-TO-END. The user is not in the terminal — they only watch the dashboard's monitor bar. Do NOT ask the user to confirm individual operations (scp, mkdir, bash, file edits, intermediate decisions). Just proceed.
 
 WRITE LOCATION (strict):
-- Use --root /data/oslab/users/jiyoun/OSLab for every oslab command.
-- All writes (scripts, runs/, reports/, logs/, data-cache/) must go under /data/oslab/users/jiyoun/OSLab/.
-- Read-only paths (do NOT write): /data/oslab/ (system shared root), /opt/oslab/ (system install). You may READ ligand libraries from /data/oslab/external_datasets/ and /data/oslab/benchmarks/.
+- Use --root {OSLAB_ROOT} for every oslab command (the generated script sets OSLAB_ROOT to the workspace you chose).
+- All writes (scripts, runs/, reports/, logs/, data-cache/) must go under {OSLAB_ROOT}/.
+- Do not write anywhere outside {OSLAB_ROOT}. On a shared server, treat any system install paths (e.g. /opt/oslab) as read-only.
 
 RESPECT THE EXACT VALUES in the generated script:
 - Honor the worker / CPU / GPU / exhaustiveness / seed numbers as written. Do NOT auto-scale to use idle CPUs. The values are intentional for reproducibility.
 - Run only the blocks whose include-checkbox is set in the script. Do NOT add blocks the user did not select. If only Block 1 is included, stop after Block 1 — do not silently start Block 2/3/4.
 
 ERROR HANDLING (autonomous recovery):
-- On permission errors, immediately retry under /data/oslab/users/jiyoun/OSLab/ (the user-writable root). Never use sudo.
+- On permission errors, immediately retry under {OSLAB_ROOT}/ (the user-writable root). Never use sudo.
 - On transient errors (network, file-lock), retry once with backoff, then continue.
 - On scientifically invalid state (missing receptor, broken ligand, mismatched counts), stop and write a one-paragraph reason to {OSLAB_ROOT}/logs/<run-label>.error.md, then exit. Do not silently change inputs.
 

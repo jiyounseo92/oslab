@@ -55,9 +55,10 @@ oslab/
 
 | OS | Native install | Notes |
 | --- | --- | --- |
-| **Linux** (tested: Ubuntu 22.04.5 LTS) | ✅ Yes | Recommended. |
-| **macOS** (Intel and Apple Silicon) | ✅ Yes | All dependencies have macOS builds. |
-| **Windows** | ❌ No | Two docking dependencies (AutoDock Vina, fpocket) have no Windows build. Windows users: either use the [browser demo](#try-it-without-installing) (no install, any OS), or install inside **WSL2** (Ubuntu on Windows) and follow the Linux steps. |
+| **Linux x86_64** (tested: Ubuntu 22.04.5 LTS) | ✅ Yes | Recommended. |
+| **Linux ARM64 (aarch64)** | ❌ No | fpocket has no Linux-ARM64 conda build (e.g. ARM Docker images). Use an x86_64 host, macOS, or the [browser demo](#try-it-without-installing). |
+| **macOS** (Intel and Apple Silicon) | ✅ Yes | All dependencies have macOS builds, including Apple Silicon (arm64). |
+| **Windows** | ❌ No | Two docking dependencies (AutoDock Vina, fpocket) have no Windows build. Windows users: either use the [browser demo](#try-it-without-installing) (no install, any OS), or install inside **WSL2** (Ubuntu on Windows) and follow the Linux x86_64 steps. |
 
 **Software dependencies** (resolved automatically by the installer; key
 versions the pipeline has been tested on):
@@ -77,8 +78,13 @@ versions the pipeline has been tested on):
 | MDAnalysis | 2.10.0 |
 | PDBFixer | 1.12.0 |
 | Biopython | 1.87 |
-| OpenFE (Block 4 / FEP) | 1.11.0 |
+| OpenFE (Block 4 / FEP) | 1.11.0 — **optional, separate environment** |
 | micromamba (installer) | 2.6.0 |
+
+OpenFE is only needed for Block 4 (FEP) and is **not** installed by the
+default `./install/install.sh`. Install it separately with
+`./install/install.sh --install-openfe-rbfe` (it creates an `openfe-rbfe`
+environment). Blocks 1–3 (docking, hit refinement, MD) do not require it.
 
 Full pinned specification: [`install/environment.yml`](install/environment.yml)
 and [`install/environment.lock.yml`](install/environment.lock.yml).
@@ -224,10 +230,13 @@ oslab screen small \
   --max-ligands 5 --exhaustiveness 8 --no-plip --out ./demo-out
 ```
 
-All 5 ligands dock; `demo-out/report/vina_results.csv` reproduces
-active_00001 −9.198, active_00007 −8.828, active_00006 −8.668,
-active_00008 −7.123, active_00009 −7.114 (kcal/mol). ~5 min on one CPU
-core, or ~1–2 min with `--docking-workers 5`.
+A successful check is that **all 5 ligands dock** and `demo-out/report/vina_results.csv`
+ranks them with the top binders around **−9 kcal/mol**. Exact AutoDock Vina
+scores vary slightly with platform and package build, so treat the values as
+approximate (expect roughly −9.0 to −9.4 for the top ligand and ~−7 for the
+weakest); the run is correct as long as all five dock and the strongest
+binders sort to the top. ~5 min on one CPU core, or ~1–2 min with
+`--docking-workers 5`.
 </details>
 
 ---
@@ -284,8 +293,8 @@ smaller curated per-block outputs are in
 
 ## Try it without installing
 
-**Read-only demo** (browse the four-tab UI and the published CDK2 reports;
-run launches disabled):
+**Read-only demo** (browse the three-tab UI — Home, Progress Monitor,
+Reports — and the published CDK2 reports; run launches disabled):
 <https://opening-bailey-bag-appearing.trycloudflare.com> — login `oslab` / `oslab2026demo`
 
 **Reviewer instance** (manuscript under review — launch a real CDK2 run from
@@ -308,6 +317,11 @@ if a link 404s, please open an issue on this repository.
 > Seo, J. et al. *Open Structure Lab: an AI-mediated four-block virtual
 > screening pipeline.* (manuscript in preparation, 2026).
 > Software archive: Zenodo, https://doi.org/10.5281/zenodo.20401297.
+
+Cite the **concept DOI `10.5281/zenodo.20401297`** — it always resolves to
+the latest version. Following it currently redirects to the version-specific
+record for v1.0.0 (`10.5281/zenodo.20401298`); either DOI reaches the
+archive, but the concept DOI is the stable citation.
 
 A formal BibTeX entry will be added on acceptance.
 
