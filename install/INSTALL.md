@@ -1,44 +1,75 @@
-# Open Structure Lab Installer Bundle
+# Installing Open Structure Lab
 
-This bundle installs Open Structure Lab into a micromamba environment and configures a workspace root for reports, runs, cache, and the local catalog.
+`install.sh` sets up Open Structure Lab in an isolated micromamba environment
+and configures a workspace root for reports, runs, cache, and the local
+catalog. It works directly from a git clone or an unzipped source archive —
+there is no separate tarball to download.
 
-## Contents
+> **Supported systems:** Linux x86_64 and macOS (Intel or Apple Silicon).
+> Not supported: Windows and Linux ARM64 (AutoDock Vina / fpocket have no
+> build there). See the top-level `README.md` § 1 for details and the
+> browser-demo / WSL2 alternatives.
 
-- `install.sh`: desktop and HPC installer entrypoint
-- `open-structure-lab-source.tar.gz`: project source tree without generated caches, reports, runs, or local environments
-- `environment.yml`: cross-platform dependency specification for micromamba/conda
-- `environment.lock.yml`: lock file captured from the build machine for reference
-- `environment.openfe-rbfe.yml`: optional OpenFE/RBFE environment for the FEP workflow
-- `PROJECT_README.md`: upstream project overview and CLI usage
+## Get the source
 
-## Desktop Install
+Either clone the repository:
 
 ```bash
-tar -xzf open-structure-lab-installer-*.tar.gz
-cd open-structure-lab-installer-*
-./install.sh
+git clone https://github.com/jiyounseo92/oslab.git
+cd oslab
+```
+
+…or download the source archive from the repository / a release and unzip
+it, then `cd` into the extracted folder (it contains `install/`, `src/`,
+`pyproject.toml`, etc.).
+
+## Desktop install
+
+From the repository root:
+
+```bash
+./install/install.sh
 ```
 
 Default desktop locations:
 
 - install dir: `~/.open-structure-lab`
-- workspace root: `~/Documents/Open Structure Lab` when `~/Documents` exists, otherwise `~/Open Structure Lab`
+- workspace root: `~/Documents/Open Structure Lab` when `~/Documents`
+  exists, otherwise `~/Open Structure Lab`
 - environment name: `open-structure-lab`
 
-To install the optional OpenFE/RBFE environment used by the FEP workflow:
+### Make the `oslab` command available
+
+The installer puts `oslab` inside the isolated environment and prints a
+launcher path at the end. Add it to your PATH for the current terminal:
 
 ```bash
-./install.sh --install-openfe-rbfe
+export PATH="$HOME/.open-structure-lab/bin:$PATH"
+oslab check-tools     # confirm the toolchain installed correctly
 ```
 
-## HPC / Shared Filesystem Install
+To make it permanent, append that `export` line to `~/.zshrc` (macOS) or
+`~/.bashrc` (Linux).
 
-Use a shared install prefix and workspace root so exported SLURM jobs can read the same files from compute nodes.
+### Optional: OpenFE/RBFE environment (Block 4, FEP)
+
+The default install does **not** include OpenFE. Add it only if you will run
+Block 4 (FEP):
 
 ```bash
-tar -xzf open-structure-lab-installer-*.tar.gz
-cd open-structure-lab-installer-*
-./install.sh \
+./install/install.sh --install-openfe-rbfe
+```
+
+This creates a separate `openfe-rbfe` environment. Blocks 1–3 (docking, hit
+refinement, MD) do not need it.
+
+## HPC / shared-filesystem install
+
+Use a shared install prefix and workspace root so exported SLURM jobs can
+read the same files from compute nodes:
+
+```bash
+./install/install.sh \
   --mode hpc \
   --install-dir /shared/apps/open-structure-lab \
   --workspace-root /shared/work/open-structure-lab \
@@ -48,8 +79,12 @@ cd open-structure-lab-installer-*
 
 ## Notes
 
-- The installer will use `micromamba` from `PATH` when available.
-- If `micromamba` is not installed, the installer downloads a standalone binary into the selected install prefix.
-- The bundle includes the application source. Python and chemistry dependencies are still resolved from conda-forge, bioconda, and pip during installation.
-- The OpenFE/RBFE environment is optional because some sites keep it separate from the base docking environment.
-- After installation, start the dashboard with the command printed by the installer.
+- The installer uses `micromamba` from `PATH` when available; otherwise it
+  downloads a standalone binary into the selected install prefix.
+- Python and chemistry dependencies are resolved from conda-forge and
+  bioconda during installation (~2.3 GB; typically 5–15 min on a laptop,
+  mostly download time).
+- The optional OpenFE/RBFE environment is kept separate because some sites
+  do not need the FEP block.
+- After installation, start the dashboard with the command printed by the
+  installer, or `oslab dashboard serve --root <workspace> --port 8770`.
