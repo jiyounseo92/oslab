@@ -94,13 +94,14 @@ versions the pipeline has been tested on):
 | MDAnalysis | 2.10.0 |
 | PDBFixer | 1.12.0 |
 | Biopython | 1.87 |
-| OpenFE (Block 4 / FEP) | 1.11.0 — **optional, separate environment** |
+| OpenFE (Block 4 / FEP) | 1.11.0 — installed by default in a separate `openfe-rbfe` env |
 | micromamba (installer) | 2.6.0 |
 
-OpenFE is only needed for Block 4 (FEP) and is **not** installed by the
-default `./install/install.sh`. Install it separately with
-`./install/install.sh --install-openfe-rbfe` (it creates an `openfe-rbfe`
-environment). Blocks 1–3 (docking, hit refinement, MD) do not require it.
+`./install/install.sh` installs both environments by default: the main
+`open-structure-lab` env (Blocks 1–3) and a separate `openfe-rbfe` env
+(Block 4 / FEP). OpenFE lives in its own env to avoid dependency
+conflicts with the docking/MD stack. If you will never run Block 4, you
+can skip it with `./install/install.sh --no-openfe-rbfe`.
 
 Full pinned specification: [`install/environment.yml`](install/environment.yml)
 and [`install/environment.lock.yml`](install/environment.lock.yml).
@@ -174,8 +175,8 @@ If `oslab check-tools` shows the tools as present, you are done. (If you
 prefer not to touch PATH, you can always run it by its full path instead:
 `~/.open-structure-lab/bin/oslab check-tools`.)
 
-For HPC / shared-filesystem installs and the optional OpenFE/RBFE
-environment used by Block 4 (FEP), see
+For HPC / shared-filesystem installs and details on the separate
+`openfe-rbfe` environment used by Block 4 (FEP), see
 [`install/INSTALL.md`](install/INSTALL.md) and
 [`install/HARDENED_INSTALL.md`](install/HARDENED_INSTALL.md).
 

@@ -18,7 +18,7 @@ mode="desktop"
 micromamba_root=""
 force=0
 dry_run=0
-install_openfe_rbfe=0
+install_openfe_rbfe=1
 
 usage() {
   cat <<'EOF'
@@ -30,12 +30,14 @@ Options:
   --install-dir DIR        Directory that will hold the unpacked source and helper files.
   --workspace-root DIR     Workspace root for runs, reports, cache, and the local catalog.
   --env-name NAME          Micromamba environment name. Default: open-structure-lab
-  --openfe-env-name NAME   Micromamba environment name for the optional OpenFE/RBFE stack.
+  --openfe-env-name NAME   Micromamba environment name for the OpenFE/RBFE (Block 4 / FEP) stack.
                            Default: openfe-rbfe
   --micromamba-root DIR    Micromamba root prefix. Default: INSTALL_DIR/.micromamba
   --mode desktop|hpc       desktop keeps defaults under the current home directory.
                            hpc is intended for shared filesystems and custom prefixes.
-  --install-openfe-rbfe    Install the optional OpenFE/RBFE environment used by the FEP workflow.
+  --install-openfe-rbfe    Deprecated no-op (the OpenFE/RBFE environment is now installed by default).
+  --no-openfe-rbfe         Skip installing the OpenFE/RBFE environment used by Block 4 (FEP).
+                           Use this only if you will never run Block 4.
   --force                  Replace an existing source checkout in INSTALL_DIR/src.
   --dry-run                Print planned actions without changing the system.
   --help                   Show this help text.
@@ -177,7 +179,12 @@ while [[ "$#" -gt 0 ]]; do
       shift
       ;;
     --install-openfe-rbfe)
+      # Deprecated no-op: OpenFE/RBFE is now installed by default.
       install_openfe_rbfe=1
+      shift
+      ;;
+    --no-openfe-rbfe)
+      install_openfe_rbfe=0
       shift
       ;;
     --dry-run)
@@ -289,7 +296,7 @@ fi
 
 if [[ "$install_openfe_rbfe" -eq 1 ]]; then
   require_file "$bundle_dir/environment.openfe-rbfe.yml"
-  log "Creating or updating optional OpenFE/RBFE environment $openfe_env_name"
+  log "Creating or updating OpenFE/RBFE (Block 4 / FEP) environment $openfe_env_name"
   if [[ "$dry_run" -eq 1 ]]; then
     printf '[dry-run] if environment %q exists: micromamba env update; otherwise: micromamba create\n' "$openfe_env_name"
   else
@@ -333,7 +340,7 @@ Open Structure Lab installation is ready.
 Install directory: $install_dir
 Workspace root: $workspace_root
 Environment name: $env_name
-Optional OpenFE/RBFE environment: $(if [[ "$install_openfe_rbfe" -eq 1 ]]; then printf '%s' "$openfe_env_name"; else printf '%s' 'not installed'; fi)
+OpenFE/RBFE (Block 4 / FEP) environment: $(if [[ "$install_openfe_rbfe" -eq 1 ]]; then printf '%s' "$openfe_env_name"; else printf '%s' 'not installed (re-run install.sh without --no-openfe-rbfe to add it)'; fi)
 Micromamba root: $micromamba_root
 Mode: $mode
 

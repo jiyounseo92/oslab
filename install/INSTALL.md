@@ -51,17 +51,20 @@ oslab check-tools     # confirm the toolchain installed correctly
 To make it permanent, append that `export` line to `~/.zshrc` (macOS) or
 `~/.bashrc` (Linux).
 
-### Optional: OpenFE/RBFE environment (Block 4, FEP)
+### Block 4 (FEP) environment
 
-The default install does **not** include OpenFE. Add it only if you will run
-Block 4 (FEP):
+`./install/install.sh` installs **two** environments by default: the main
+`open-structure-lab` env (Blocks 1–3: docking, hit refinement, MD) and a
+separate `openfe-rbfe` env (Block 4: alchemical relative binding free
+energy via OpenFE). OpenFE lives in its own env because its dependencies
+conflict with the docking/MD stack.
+
+If you will never run Block 4, you can skip the OpenFE env to save disk
+and install time:
 
 ```bash
-./install/install.sh --install-openfe-rbfe
+./install/install.sh --no-openfe-rbfe
 ```
-
-This creates a separate `openfe-rbfe` environment. Blocks 1–3 (docking, hit
-refinement, MD) do not need it.
 
 ## HPC / shared-filesystem install
 
@@ -73,8 +76,7 @@ read the same files from compute nodes:
   --mode hpc \
   --install-dir /shared/apps/open-structure-lab \
   --workspace-root /shared/work/open-structure-lab \
-  --env-name open-structure-lab \
-  --install-openfe-rbfe
+  --env-name open-structure-lab
 ```
 
 ## Notes
@@ -82,9 +84,11 @@ read the same files from compute nodes:
 - The installer uses `micromamba` from `PATH` when available; otherwise it
   downloads a standalone binary into the selected install prefix.
 - Python and chemistry dependencies are resolved from conda-forge and
-  bioconda during installation (~2.3 GB; typically 5–15 min on a laptop,
-  mostly download time).
-- The optional OpenFE/RBFE environment is kept separate because some sites
-  do not need the FEP block.
+  bioconda during installation. Total disk for both default environments
+  is ~4 GB; typical install time on a laptop is 10–25 min, mostly
+  download time.
+- The OpenFE/RBFE environment is kept separate because its package
+  dependencies conflict with the main env; the installer manages both
+  for you so the four-block pipeline runs end-to-end out of the box.
 - After installation, start the dashboard with the command printed by the
   installer, or `oslab dashboard serve --root <workspace> --port 8770`.
