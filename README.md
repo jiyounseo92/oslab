@@ -14,7 +14,7 @@ Companion repository for **Seo et al.** (manuscript in preparation).
 Citable archive: [Zenodo DOI 10.5281/zenodo.20401297](https://doi.org/10.5281/zenodo.20401297)
 (concept DOI — always resolves to the latest version, currently v1.1.0).
 
-> ### Reviewers / first-time visitors — start here
+> ### Reviewers — start here
 >
 > The fastest path is the hosted **reviewer instance** — no install, no
 > typing of pipeline commands:
@@ -31,9 +31,8 @@ Citable archive: [Zenodo DOI 10.5281/zenodo.20401297](https://doi.org/10.5281/ze
 > back into the dashboard's **Progress Monitor** tab, and writes results
 > into the **Reports** tab. You do not type any pipeline commands.
 >
-> Reviewers who instead want to install locally: sections 1–4 below follow
-> the Nature Research software submission checklist
-> (System requirements → Installation guide → Demo → Instructions for use).
+> Prefer to install locally? Just follow sections 1–4 below in order:
+> System requirements → Installation guide → Demo → Instructions for use.
 
 ## Where to start
 
@@ -284,7 +283,7 @@ ranked tables, and 3D viewers). Fill the form, copy the generated AI prompt,
 and paste it into an AI coding agent to execute the pipeline on your GPU
 host. Step-by-step usage: [`docs/methods.md`](docs/methods.md) § 2.
 
-### Reproduce the manuscript benchmark
+### Reproduce the published benchmark
 
 The published benchmarks use DUD-E active/decoy libraries. Fetch any of them
 directly from DUD-E into your workspace:
@@ -334,7 +333,7 @@ Each browser gets its own `anon-<id>` workspace via an HttpOnly session
 cookie (`Max-Age=2592000`, ~30 days). Same browser → same history;
 incognito / different browser → fresh workspace. All reviewers share one
 NVIDIA A10 GPU; the bundled 5-ligand Quick Start finishes in a few
-minutes. Reviewer access will be revoked once the manuscript is accepted.
+minutes. The reviewer URL is temporary and may be retired at any time.
 
 **Read-only demo.** Browse the three-tab UI — Home, Progress Monitor,
 Reports — and the published CDK2 reports. Run launches are disabled, so
