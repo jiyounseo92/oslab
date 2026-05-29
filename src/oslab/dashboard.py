@@ -326,6 +326,23 @@ class DashboardState:
                     result["log_tail"] = _tail_text(Path(str(result.get("log_path") or "")), max_chars=2000)
                     job["result"] = result
                 job = self._refresh_process_backed_job(job)
+            elif job["kind"] == "orchestrate":
+                # Orchestrate jobs run in a detached screen session; we cannot
+                # update DashboardJob.status from within that subprocess, so
+                # reflect the latest progress.json + log tail here so polling
+                # clients (and the dashboard monitor) see real-time status.
+                result = dict(job.get("result") or {})
+                progress_path = Path(str(result.get("progress_path") or "")) if result.get("progress_path") else None
+                if progress_path and progress_path.exists():
+                    prog = _read_json_file(progress_path) or {}
+                    result["progress"] = prog
+                    log_path = Path(str(result.get("log_path") or ""))
+                    if log_path.exists():
+                        result["log_tail"] = _tail_text(log_path, max_chars=4000)
+                    final_status = str(prog.get("status") or "")
+                    if final_status in {"completed", "failed"}:
+                        job["status"] = final_status
+                    job["result"] = result
             if job is not None:
                 refreshed_jobs.append(job)
         known_outputs = {str((job.get("result") or {}).get("output_dir") or "") for job in refreshed_jobs}
@@ -1091,6 +1108,9 @@ def _make_handler(state: DashboardState) -> type[BaseHTTPRequestHandler]:
                     return
                 if parsed.path == "/api/screen/small":
                     self._send_json(_start_small_screen_job(state, payload, username))
+                    return
+                if parsed.path == "/api/orchestrate":
+                    self._send_json(_start_orchestrate_job(state, payload, username))
                     return
                 if parsed.path == "/api/screen/slurm-export":
                     self._send_json(_start_slurm_screen_export_job(state, payload, username))
@@ -3586,6 +3606,127 @@ def _start_slurm_screen_export_job(state: DashboardState, payload: dict[str, Any
     job = state.add_job(DashboardJob(id=uuid.uuid4().hex[:12], kind="slurm-screen-export", username=username, request=payload))
     thread = threading.Thread(target=_run_slurm_screen_export_job, args=(state, job.id, payload), daemon=True)
     thread.start()
+    return job.to_dict()
+
+
+def _start_orchestrate_job(state: DashboardState, payload: dict[str, Any], username: str | None = None) -> dict[str, Any]:
+    """Run a client-supplied multi-block bash script in a detached screen session.
+
+    This is the server-side execution path for the public reviewer instance:
+    the dashboard's script generator emits the bash for the 4-block pipeline,
+    the user (or their AI agent via /api/orchestrate POST) submits it, and we
+    run it under the user's anonymous-session workspace so multiple reviewers
+    stay isolated.
+    """
+    username = safe_user_name(username or payload.get("username") or get_request_user())
+    user_root = _dashboard_user_root(state.root, username)
+    user_root.mkdir(parents=True, exist_ok=True)
+    job_id = uuid.uuid4().hex[:12]
+    run_label = str(payload.get("run_label") or "").strip() or f"orchestrate-{job_id}"
+    workdir = user_root / "runs" / f"{run_label}-{job_id}"
+    workdir.mkdir(parents=True, exist_ok=True)
+    script_body = str(payload.get("script") or "").strip()
+    if not script_body:
+        return {"error": "script is required"}
+    if len(script_body) > 1_000_000:
+        return {"error": "script exceeds 1 MB limit"}
+    # Always wrap in a safe header.  set -u would trip on unbound vars in
+    # user-pasted scripts, so we only enable -e and pipefail.
+    header = (
+        "#!/usr/bin/env bash\n"
+        "set -eo pipefail\n"
+        f"export OSLAB_ROOT={shlex_quote(str(state.root))}\n"
+        f"export USER_DIR={shlex_quote(str(user_root))}\n"
+        f"export OSLAB_USER_SAFE={shlex_quote(username)}\n"
+        f"cd {shlex_quote(str(user_root))}\n"
+    )
+    script_path = workdir / "run.sh"
+    script_path.write_text(header + script_body, encoding="utf-8")
+    script_path.chmod(0o755)
+    log_path = workdir / "terminal.log"
+    progress_path = workdir / "progress.json"
+    progress_path.write_text(
+        json.dumps({
+            "run_label": run_label,
+            "kind": "orchestrate",
+            "status": "queued",
+            "current_step": "queued",
+            "percent": 0,
+            "message": "orchestrate job queued",
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "steps": [],
+        }, indent=2),
+        encoding="utf-8",
+    )
+    job = state.add_job(DashboardJob(
+        id=job_id,
+        kind="orchestrate",
+        username=username,
+        status="queued",
+        request={k: v for k, v in payload.items() if k != "script"},  # don't echo big script
+        result={
+            "run_label": run_label,
+            "workdir": str(workdir),
+            "script_path": str(script_path),
+            "log_path": str(log_path),
+            "progress_path": str(progress_path),
+        },
+    ))
+    env_bin = "/opt/oslab/current/.micromamba/envs/open-structure-lab/bin"
+    screen = shutil.which("screen")
+    if screen:
+        session_name = f"oslab-orch-{job_id}"
+        # The script header already cd's into user_root; we also ensure the
+        # oslab environment binaries are on PATH so the script can call them
+        # without absolute paths.
+        wrapped = (
+            f"export PATH={shlex_quote(env_bin)}:$PATH && "
+            f"bash {shlex_quote(str(script_path))} > {shlex_quote(str(log_path))} 2>&1; "
+            # When the script finishes, mark progress completed/failed so the
+            # monitor stops showing "queued".
+            f"rc=$?; python3 -c 'import json,sys; "
+            f"p=open(sys.argv[1]); d=json.load(p); p.close(); "
+            f"d[\"status\"]=\"completed\" if int(sys.argv[2])==0 else \"failed\"; "
+            f"d[\"current_step\"]=d[\"status\"]; d[\"percent\"]=100 if int(sys.argv[2])==0 else d.get(\"percent\",0); "
+            f"open(sys.argv[1],\"w\").write(json.dumps(d, indent=2))' {shlex_quote(str(progress_path))} $rc"
+        )
+        try:
+            subprocess.run(
+                [screen, "-dmS", session_name, _screen_shell(), "-lc", wrapped],
+                cwd=str(user_root),
+                check=True,
+            )
+            state.update_job(job_id, status="running", result={**(job.result or {}), "session_name": session_name})
+        except subprocess.CalledProcessError as exc:
+            state.update_job(job_id, status="failed", error=f"failed to start screen session: {exc}")
+    else:
+        # Thread fallback (not restart-persistent).
+        def _runner() -> None:
+            state.update_job(job_id, status="running")
+            try:
+                with log_path.open("wb") as logf:
+                    rc = subprocess.run(
+                        ["bash", str(script_path)],
+                        cwd=str(user_root),
+                        stdout=logf,
+                        stderr=subprocess.STDOUT,
+                        env={**os.environ, "PATH": f"{env_bin}:" + os.environ.get("PATH", "")},
+                    ).returncode
+                status = "completed" if rc == 0 else "failed"
+                state.update_job(job_id, status=status)
+                try:
+                    d = json.loads(progress_path.read_text(encoding="utf-8"))
+                    d["status"] = status
+                    d["current_step"] = status
+                    if status == "completed":
+                        d["percent"] = 100
+                    progress_path.write_text(json.dumps(d, indent=2), encoding="utf-8")
+                except Exception:
+                    pass
+            except Exception as exc:
+                state.update_job(job_id, status="failed", error=str(exc))
+        threading.Thread(target=_runner, daemon=True).start()
+        state.update_job(job_id, status="running", result={**(job.result or {}), "notes": "thread fallback (no screen)"})
     return job.to_dict()
 
 

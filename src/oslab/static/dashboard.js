@@ -2116,7 +2116,45 @@
       lines.push('echo "OSLab workflow finished. Review reports under $USER_DIR/reports."');
       $("generatedScript").value = lines.join("\n");
 
+      // When the dashboard is in anonymous-session mode (public reviewer
+      // instance), prepend an HTTPS-API execution preamble so the AI agent
+      // runs the script through the dashboard's /api/orchestrate endpoint
+      // instead of SSHing into a server.  The session cookie isolates this
+      // run to the current reviewer's workspace.
+      let httpsPreamble = "";
+      if (typeof username === "string" && username.startsWith("anon-")) {
+        const origin = window.location.origin;
+        // The session-cookie is HttpOnly (good — JS can't read it directly),
+        // but its value is the suffix of the username the server gives us
+        // (anon-<sid>), so we recover it from there.
+        const sidValue = username.slice("anon-".length);
+        httpsPreamble = [
+          "PREFERRED EXECUTION PATH — run the script via this dashboard's HTTPS orchestrate API. Do NOT SSH anywhere; the dashboard already runs on a GPU server and will execute your script in your isolated workspace.",
+          "",
+          "Endpoint: " + origin + "/api/orchestrate",
+          "Basic Auth: reviewer:oslab-review-2026",
+          "Cookie: oslab_session=" + sidValue,
+          "Run label to use: " + label,
+          "",
+          "Steps the agent should perform:",
+          "1. Save the bash script at the end of this prompt (everything after the line 'Generated script:') to a local file, e.g. /tmp/oslab-run.sh.",
+          "2. POST it to the orchestrate endpoint:",
+          "     JOB=$(curl -s -u reviewer:oslab-review-2026 -b 'oslab_session=" + sidValue + "' \\",
+          "       -X POST '" + origin + "/api/orchestrate' \\",
+          "       -H 'Content-Type: application/json' \\",
+          "       -d \"$(python3 -c 'import json,sys; print(json.dumps({\\\"run_label\\\":sys.argv[1], \\\"script\\\":open(sys.argv[2]).read()}))' " + label + " /tmp/oslab-run.sh)\")",
+          "     JOB_ID=$(echo \"$JOB\" | python3 -c 'import json,sys; print(json.load(sys.stdin)[\\\"id\\\"])')",
+          "3. Poll the job until status becomes 'completed' or 'failed' (sleep ~30s between polls):",
+          "     curl -s -u reviewer:oslab-review-2026 -b 'oslab_session=" + sidValue + "' '" + origin + "/api/jobs/'$JOB_ID",
+          "4. When done, reports land under the workspace the dashboard already shows the user (in the Reports tab). No SSH and no scp are needed at any step.",
+          "",
+          "If the orchestrate POST returns an error or you cannot reach the endpoint, stop and tell the user — do NOT fall back to SSH.",
+          "",
+          "----",
+        ].join("\n");
+      }
       const promptLines = [
+        httpsPreamble,
         "Use the following OSLab Script Generator output to create and run a reproducible multi-block workflow.",
         `Execution target: ${target}. OSLab root: ${root}. OSLab user: ${username}. Run label: ${label}.`,
         `CPU workers: ${workers}. Vina CPU per ligand: ${vinaCpu}. OpenMM/OpenFE platform: ${platform}.${cudaVisibleDevices ? ` CUDA_VISIBLE_DEVICES: ${cudaVisibleDevices}.` : ""}`,
@@ -2131,7 +2169,7 @@
         "Large ligand library policy: for large ZINC or SDF/SMILES libraries, inspect input counts before prep, validate prepared PDBQT counts after prep, and treat partial prep as incomplete unless the user explicitly chose a subset. Resume from existing prepared outputs only after confirming they cover the intended ligand set.",
         "Pause/interruption policy: if the user interrupts or the terminal closes, leave partial files in place, do not delete outputs, summarize the last completed checkpoint and the safe resume command, and resume only from a checkpoint that preserves scientific interpretability.",
         $("sgAiInstructions").value.trim() ? `Additional user instructions: ${$("sgAiInstructions").value.trim()}` : "",
-        $("generatedSshCommands")?.value.trim() ? `SSH/server access commands:\n${$("generatedSshCommands").value.trim()}` : "",
+        (httpsPreamble || !$("generatedSshCommands")?.value.trim()) ? "" : `SSH/server access commands:\n${$("generatedSshCommands").value.trim()}`,
         "",
         "Generated script:",
         $("generatedScript").value
