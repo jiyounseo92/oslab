@@ -11,21 +11,38 @@ generates a script, you paste the script into an AI coding agent
 and streams progress back into the dashboard.
 
 Companion repository for **Seo et al.** (manuscript in preparation).
-Citable archive: [Zenodo DOI 10.5281/zenodo.20401297](https://doi.org/10.5281/zenodo.20401297).
+Citable archive: [Zenodo DOI 10.5281/zenodo.20401297](https://doi.org/10.5281/zenodo.20401297)
+(concept DOI — always resolves to the latest version, currently v1.1.0).
 
-> **Reviewers / editors:** sections 1–4 below follow the Nature Research
-> software submission checklist (System requirements → Installation guide →
-> Demo → Instructions for use). A live demo and a runnable reviewer
-> instance are linked under [Try it without installing](#try-it-without-installing).
+> ### Reviewers / first-time visitors — start here
+>
+> The fastest path is the hosted **reviewer instance** — no install, no
+> typing of pipeline commands:
+>
+> 1. Open <https://resistant-peoples-gaming-stood.trycloudflare.com>
+>    (login `reviewer` / `oslab-review-2026`).
+> 2. Click **"Quick start: CDK2 demo (bundled, 5 ligands)"** on the Home tab.
+> 3. Click **"Copy AI prompt"** (right-hand panel).
+> 4. Paste into your own AI coding agent (Codex, Claude Code, Cursor, …)
+>    and let it run.
+>
+> The agent executes the full four-block pipeline against an **isolated
+> per-browser workspace** (anonymous session cookie, ~30 days), reports
+> back into the dashboard's **Progress Monitor** tab, and writes results
+> into the **Reports** tab. You do not type any pipeline commands.
+>
+> Reviewers who instead want to install locally: sections 1–4 below follow
+> the Nature Research software submission checklist
+> (System requirements → Installation guide → Demo → Instructions for use).
 
 ## Where to start
 
 | I want to… | Go to |
 | --- | --- |
+| **Try it without installing (recommended for reviewers)** | [Try it without installing](#try-it-without-installing) |
 | **Install and run it locally** | [1. System requirements](#1-system-requirements) → [2. Installation guide](#2-installation-guide) |
 | **Confirm my install works (5-min demo)** | [3. Demo](#3-demo) |
 | **Run it on my own target / reproduce the paper** | [4. Instructions for use](#4-instructions-for-use) |
-| **Try it without installing** | [Try it without installing](#try-it-without-installing) |
 | **Understand how OSLab works** | [`docs/methods.md`](docs/methods.md) |
 | **Read the benchmark reports / outputs** | [`docs/reports/`](docs/reports/), [`examples/`](examples/) |
 
@@ -187,8 +204,10 @@ oslab dashboard serve --root ./demo-ws --port 8770
 Leave it running and open **http://localhost:8770** in your browser.
 
 **Step 2 — fill in a run.** On the **Home** tab, click
-**"Quick start: CDK2"**. This fills the whole form with a ready-to-run CDK2
-example (you don't need to know any of the settings).
+**"Quick start: CDK2 demo (bundled, 5 ligands)"**. This fills the whole
+form with a ready-to-run CDK2 example (you don't need to know any of the
+settings); the 5 ligands and receptor are bundled inside the installed
+package, so no extra downloads are needed.
 
 **Step 3 — copy the AI prompt.** On the right-hand panel, click
 **"Copy AI prompt"**. This copies a self-contained instruction block (what
@@ -282,9 +301,11 @@ DUD-E URLs (`https://dude.docking.org/targets/...`) have been live since
 2012, which is why we prefer them over project-internal mirrors for
 long-term reproducibility.
 
-Then open the dashboard, click **Quick start: CDK2 full pipeline**, and the
-form references the downloaded files. The full raw outputs of the published
-CDK2 run (940 MB, 77,948 files) are attached as a release asset:
+Open the dashboard, then on the **Home** tab fill the form to point at the
+downloaded files (Target → Local file → `<workspace>/benchmarks/cdk2-dude/receptor.pdb`,
+Ligand library → Local file → `<workspace>/benchmarks/cdk2-dude/actives.smi`,
+etc.) and copy the AI prompt as in § 3. The full raw outputs of the
+published CDK2 run (940 MB, 77,948 files) are attached as a release asset:
 [kimlab-cdk2-enrichment-v2](https://github.com/jiyounseo92/oslab/releases/tag/kimlab-cdk2-enrichment-v2);
 smaller curated per-block outputs are in
 [`examples/kimlab-cdk2-enrichment-v2/`](examples/kimlab-cdk2-enrichment-v2/).
@@ -293,22 +314,34 @@ smaller curated per-block outputs are in
 
 ## Try it without installing
 
-**Read-only demo** (browse the three-tab UI — Home, Progress Monitor,
-Reports — and the published CDK2 reports; run launches disabled):
-<https://opening-bailey-bag-appearing.trycloudflare.com> — login `oslab` / `oslab2026demo`
+Two hosted instances (no install, browser only). Both are Cloudflare quick
+tunnels and may rotate when the tunnel restarts; if a link 404s, open an
+issue on this repository.
 
-**Reviewer instance** (manuscript under review — launch a real CDK2 run from
-the dashboard, no local install; DUD-E CDK2/KIF11/HIV-RT inputs pre-fetched):
-<https://bet-logs-shaved-city.trycloudflare.com> — login `reviewer` / `oslab-review-2026`
+**Reviewer instance — recommended for reviewers.** Launches the full
+four-block pipeline against an isolated per-browser workspace. No SSH, no
+local install:
 
-The reviewer instance runs on a single NVIDIA A10 GPU; concurrent reviewers
-share it, so a full 24,549-ligand DUD-E CDK2 docking is slower than the
-8× A100 benchmark in the manuscript — for a quick end-to-end check we
-recommend the bundled Wang-FEP demo Quick Start (16 ligands, ~1 hour).
-Reviewer access will be revoked once the manuscript is accepted.
+> <https://resistant-peoples-gaming-stood.trycloudflare.com>
+> — login `reviewer` / `oslab-review-2026`
 
-Both URLs are Cloudflare quick tunnels and rotate when the tunnel restarts;
-if a link 404s, please open an issue on this repository.
+1. Log in → Home tab → **"Quick start: CDK2 demo (bundled, 5 ligands)"**.
+2. Right-hand panel → **"Copy AI prompt"**.
+3. Paste into your own AI coding agent (Codex, Claude Code, Cursor, …).
+4. Watch **Progress Monitor** and **Reports** tabs as the agent runs.
+
+Each browser gets its own `anon-<id>` workspace via an HttpOnly session
+cookie (`Max-Age=2592000`, ~30 days). Same browser → same history;
+incognito / different browser → fresh workspace. All reviewers share one
+NVIDIA A10 GPU; the bundled 5-ligand Quick Start finishes in a few
+minutes. Reviewer access will be revoked once the manuscript is accepted.
+
+**Read-only demo.** Browse the three-tab UI — Home, Progress Monitor,
+Reports — and the published CDK2 reports. Run launches are disabled, so
+the UI is safe to click through without committing any compute:
+
+> <https://opening-bailey-bag-appearing.trycloudflare.com>
+> — login `oslab` / `oslab2026demo`
 
 ---
 
@@ -319,9 +352,9 @@ if a link 404s, please open an issue on this repository.
 > Software archive: Zenodo, https://doi.org/10.5281/zenodo.20401297.
 
 Cite the **concept DOI `10.5281/zenodo.20401297`** — it always resolves to
-the latest version. Following it currently redirects to the version-specific
-record for v1.0.0 (`10.5281/zenodo.20401298`); either DOI reaches the
-archive, but the concept DOI is the stable citation.
+the latest version. It currently resolves to the v1.1.0 record
+(`10.5281/zenodo.20447369`); either DOI reaches the archive, but the
+concept DOI is the stable citation that will keep tracking future releases.
 
 A formal BibTeX entry will be added on acceptance.
 
