@@ -332,8 +332,9 @@ local install:
 Each browser gets its own `anon-<id>` workspace via an HttpOnly session
 cookie (`Max-Age=2592000`, ~30 days). Same browser → same history;
 incognito / different browser → fresh workspace. All reviewers share one
-NVIDIA A10 GPU; the bundled 5-ligand Quick Start finishes in a few
-minutes. The reviewer URL is temporary and may be retired at any time.
+NVIDIA A10 GPU; the bundled 5-ligand Quick Start runs the full four-block
+funnel (docking → hit refinement → MD → FEP) in ~30–40 min on that GPU.
+The reviewer URL is temporary and may be retired at any time.
 
 **Read-only demo.** Browse the three-tab UI — Home, Progress Monitor,
 Reports — and the published CDK2 reports. Run launches are disabled, so

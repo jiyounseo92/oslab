@@ -371,19 +371,19 @@
   // optional friendly value-name shown in the summary panel].
   // For <select>, "value" is matched against option.value (or option.text as
   // a fallback) so we set the right option even when the visible label differs.
-  // Budget targets ~1 hour total on Lambda (A100 GPU for blocks 3 & 4),
-  // sized so Block 4 actually runs and FEP results are interpretable:
-  //   Block 1 docking (CPU)        ~12–14 min — 16 ligands × exh=8
-  //   Block 2 hit refinement (CPU) ~2–3 min  — top 3, 1 seed
-  //   Block 3 MD optimization (GPU)~25–30 min — top 2, 2.5 ns production
-  //     (≥ 2 ns is needed for contact occupancy to pass the 30% MD-gate
-  //      threshold so Block 4 isn't auto-skipped.)
-  //   Block 4 FEP (GPU)           ~15–18 min — 1 edge, 11 lambda windows,
-  //                                 100 ps production per window
+  // Budget targets ~30–40 min total on the Lambda A10 GPU. Funnel sized
+  // to take 5 ligands end-to-end through all four blocks fast, not a
+  // publication run. Block 3 stays at 2 ns so the MD-gate (30% contact
+  // occupancy over production) doesn't auto-skip Block 4.
+  //   Block 1 docking (CPU)        ~3 min    — 5 ligands × exh=8
+  //   Block 2 hit refinement (CPU) ~1–2 min  — top 3, exh=8, 1 seed
+  //   Block 3 MD optimization (GPU)~20–25 min — top 2, 2.0 ns production
+  //   Block 4 FEP (GPU)            ~10–12 min — 1 edge, 11 lambda windows,
+  //                                  40 ps production per window
   //
   // Personal "test fast" overrides (NOT baked into defaults):
   //   Bump `Total CPU workers` to 16 and `Vina CPU per ligand` to 4 to
-  //   parallelize Block 1 docking — drops Block 1 to ~1–2 min.
+  //   parallelize Block 1 docking — drops Block 1 to ~1 min.
   const CDK2_VALUES = [
     // -------- Block 1: Docking --------
     ["sg_docking_target_gene", "Target gene", "CDK2"],
@@ -421,7 +421,7 @@
 
     // -------- Block 2: Hit Refinement --------
     ["sg_hit_top_n", "Hit refinement: top ligands", "3"],
-    ["sg_hit_exhaustiveness", "Hit refinement: exhaustiveness", "16"],
+    ["sg_hit_exhaustiveness", "Hit refinement: exhaustiveness", "8"],
     ["sg_hit_num_modes", "Hit refinement: poses per ligand", "3"],
     ["sg_hit_seeds", "Hit refinement: seeds", "1"],
     ["sg_hit_plip", "Hit refinement: run PLIP", "yes", "Yes"],
@@ -429,7 +429,7 @@
 
     // -------- Block 3: MD and Optimization (GPU auto-detected) --------
     ["sg_md_top_n", "MD: top ligands", "2"],
-    ["sg_md_production_ns", "MD: production time (ns)", "2.5"],
+    ["sg_md_production_ns", "MD: production time (ns)", "2.0"],
     ["sg_md_nvt_ns", "MD: NVT equilibration (ns)", "0.1"],
     ["sg_md_npt_ns", "MD: NPT equilibration (ns)", "0.1"],
     ["sg_md_minimization_steps", "MD: minimization steps", "1000"],
@@ -439,9 +439,9 @@
     ["sg_fep_input_mode", "FEP: input mode", "topn", "Top-N MD-pass hits"],
     ["sg_fep_top_n", "FEP: top MD ligands", "2"],
     ["sg_fep_n_lambda", "FEP: lambda windows", "11"],
-    ["sg_fep_n_steps_per_window", "FEP: production steps per window", "50000"],
+    ["sg_fep_n_steps_per_window", "FEP: production steps per window", "20000"],
     ["sg_fep_n_equilibration_steps", "FEP: equilibration steps per window", "10000"],
-    ["sg_fep_max_minutes_per_transformation", "FEP: max minutes per transformation", "25"],
+    ["sg_fep_max_minutes_per_transformation", "FEP: max minutes per transformation", "12"],
 
     // -------- Shared workers --------
     ["sgVinaCpu", "Vina CPU per ligand", "1"],
@@ -530,7 +530,7 @@
       <div class="quick-start-summary">
         <div class="quick-start-summary-header">
           <strong>CDK2 demo values filled in.</strong>
-          <span class="muted">Bundled CDK2 demo · 5 ligands · docking ~5 min on CPU (blocks 3–4 need a GPU).</span>
+          <span class="muted">Bundled CDK2 demo · 5 ligands · full 4-block funnel ~30–40 min total (blocks 3–4 need a GPU).</span>
           <a href="#" id="quickStartReset" class="quick-start-reset">Reset</a>
         </div>
         <div class="quick-start-summary-action">
