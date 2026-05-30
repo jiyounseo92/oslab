@@ -448,14 +448,14 @@
   // optional friendly value-name shown in the summary panel].
   // For <select>, "value" is matched against option.value (or option.text as
   // a fallback) so we set the right option even when the visible label differs.
-  // Budget targets ~30–40 min total on the Lambda A10 GPU. Funnel sized
+  // Budget targets ~20–25 min total on the Lambda A10 GPU. Funnel sized
   // to take 5 ligands end-to-end through all four blocks fast, not a
   // publication run. Block 3 stays at 2 ns so the MD-gate (30% contact
   // occupancy over production) doesn't auto-skip Block 4.
   //   Block 1 docking (CPU)        ~3 min    — 5 ligands × exh=8
   //   Block 2 hit refinement (CPU) ~1–2 min  — top 3, exh=8, 1 seed
-  //   Block 3 MD optimization (GPU)~20–25 min — top 2, 2.0 ns production
-  //   Block 4 FEP (GPU)            ~10–12 min — 1 edge, 11 lambda windows,
+  //   Block 3 MD optimization (GPU)~12–15 min — top 1, 2.0 ns production
+  //   Block 4 FEP (GPU)            ~6 min    — 1 edge, 11 lambda windows,
   //                                  40 ps production per window
   //
   // Personal "test fast" overrides (NOT baked into defaults):
@@ -505,7 +505,7 @@
     ["sg_hit_plip_top_n", "Hit refinement: PLIP top N", "3"],
 
     // -------- Block 3: MD and Optimization (GPU auto-detected) --------
-    ["sg_md_top_n", "MD: top ligands", "2"],
+    ["sg_md_top_n", "MD: top ligands", "1"],
     ["sg_md_production_ns", "MD: production time (ns)", "2.0"],
     ["sg_md_nvt_ns", "MD: NVT equilibration (ns)", "0.1"],
     ["sg_md_npt_ns", "MD: NPT equilibration (ns)", "0.1"],
@@ -514,7 +514,7 @@
 
     // -------- Block 4: FEP (GPU auto-detected) --------
     ["sg_fep_input_mode", "FEP: input mode", "topn", "Top-N MD-pass hits"],
-    ["sg_fep_top_n", "FEP: top MD ligands", "2"],
+    ["sg_fep_top_n", "FEP: top MD ligands", "1"],
     ["sg_fep_n_lambda", "FEP: lambda windows", "11"],
     ["sg_fep_n_steps_per_window", "FEP: production steps per window", "20000"],
     ["sg_fep_n_equilibration_steps", "FEP: equilibration steps per window", "10000"],

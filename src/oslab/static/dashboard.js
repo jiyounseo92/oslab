@@ -1779,15 +1779,6 @@
         lines.push('if [[ ! -s "$RECEPTOR_PDBQT" ]]; then echo "Missing receptor PDBQT: $RECEPTOR_PDBQT" >&2; exit 1; fi');
         lines.push('if [[ ! -s "$BINDING_SITE_JSON" ]]; then echo "Missing binding-site JSON: $BINDING_SITE_JSON" >&2; exit 1; fi');
         lines.push('if [[ ! -e "$LIGAND_INPUT" ]]; then echo "Missing ligand input: $LIGAND_INPUT" >&2; exit 1; fi');
-        lines.push("python3 - \"$LIGAND_INPUT\" <<'PY' || true");
-        lines.push("import json, sys");
-        lines.push("from oslab.dashboard import _inspect_ligands");
-        lines.push("try:");
-        lines.push("    data = _inspect_ligands({'ligands': sys.argv[1]})");
-        lines.push("    print('Ligand input inspection:', json.dumps({k: data.get(k) for k in ('path', 'type', 'count', 'file_count', 'needs_prep', 'vina_ready') if k in data}, sort_keys=True))");
-        lines.push("except Exception as exc:");
-        lines.push("    print(f'Warning: ligand input inspection failed before docking: {exc}', file=sys.stderr)");
-        lines.push("PY");
         if (ligandInputPreparedPdbqt) {
           lines.push('PDBQT_COUNT=$(find "$LIGAND_PDBQT_DIR" -maxdepth 1 -type f -name "*.pdbqt" | wc -l | tr -d " ")');
           lines.push('if [[ "${PDBQT_COUNT:-0}" -lt 1 ]]; then echo "No PDBQT ligand files found in $LIGAND_PDBQT_DIR" >&2; exit 1; fi');
@@ -2163,6 +2154,7 @@
         "Keep logs, progress JSON, reports, ligand tables, and structure outputs under the generated USER_DIR ($OSLAB_ROOT/users/<user>) so the dashboard can display them for the correct user.",
         "Failure and recovery policy: retry only transient infrastructure problems such as network timeouts, temporary file locks, or interrupted shells. Do not change target structures, ligand membership/filters, binding sites, docking boxes, force fields, seeds, or completed scientific outputs without explicit user approval. If a command crashes, capture the failing command, exit code, log tail, and relevant progress JSON before deciding whether a repair is scientifically neutral.",
         "Progress monitoring policy: monitor execution periodically and alert the user if any block stalls, exits nonzero, produces missing outputs, or reports partial/failed status. The script declares dashboard-monitored variables such as DOCKING_PROGRESS_JSON, HIT_CLUSTERING_PROGRESS_JSON, HIT_PROGRESS_JSON, MD_PROGRESS_JSON, and FEP_PROGRESS_JSON. Check these files plus the corresponding terminal.log/RUN_LOG. Status fields usually include status, current_step, steps, selections, events, next_block_ready, and block-specific counts such as prepared_count, docked_count, target_count, ligand_results, cluster_count, selected_ligand_count, network_plan, edge_status, and edge_results.",
+        "Silent-execution patience policy: ligand-prep (RDKit 3D embedding), MD production, and FEP lambda windows can run silently for 5-15 minutes at a time with no new lines in terminal.log/RUN_LOG; this is NORMAL CPU/GPU work, not a stall. Do NOT declare the job failed based on log silence. Only treat a run as stalled if the most-recent block's progress.json 'updated_at' field has not advanced for more than 20 minutes AND no new step transition (current_step change or new events entry) has occurred in that window. Optional preflight commands that the script guards with '|| true' (for example a bare 'python3 -c ...' import probe run outside the conda env that prints a ModuleNotFoundError traceback) are diagnostic only and MUST be ignored — they do not indicate workflow failure. Continue polling GET /api/jobs/<job_id> and the per-block progress.json files until the wrapper job's status reaches 'completed' or 'failed'; never decide completion or failure from log silence alone.",
         "Script-size policy: if the generated script or prompt is too large for the execution environment, split it at '# Block 1', '# Block 2', '# Block 3', and '# Block 4'. Run one block at a time, confirm that its report/progress JSON exists, then pass the output JSON path into the next block.",
         "SSH/security policy: never print, copy, or store private key contents in logs, reports, or transcripts. Verify the SSH username, hostname, host fingerprint when prompted, and private-key file permissions before connecting. If key authentication fails, report the exact SSH command and error; do not switch to password authentication or create new keys unless the user asks.",
         "Shell/GPU preflight policy: run under bash, verify python3 and oslab are available, and for CUDA runs verify GPU visibility with nvidia-smi when available before MD/FEP/OpenFE work. If CUDA is requested but no GPU is visible, stop or ask before falling back to CPU because timing and feasibility change.",
