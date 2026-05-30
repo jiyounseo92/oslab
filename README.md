@@ -127,6 +127,17 @@ Everything below is typed into a **terminal**. First open one:
   below inside that Ubuntu terminal. If you only want to look at OSLab,
   skip installing and use the [browser demo](#try-it-without-installing).
 
+**Prerequisite check (Linux / WSL2 only).** macOS already bundles every
+tool below. A *fresh* Linux install — especially a minimal Docker image
+like `ubuntu:22.04` — typically does **not**, and `install.sh` will fail
+fast with a one-line message naming what is missing. Install all five up
+front to avoid the round-trip:
+
+```bash
+sudo apt-get update && sudo apt-get install -y bash curl tar bzip2 git
+# Fedora / RHEL: sudo dnf install -y bash curl tar bzip2 git
+```
+
 **Step 1 — download the code.** Copy-paste this into the terminal and
 press Enter:
 
@@ -145,7 +156,13 @@ dependencies (RDKit, OpenMM, AutoDock Vina, …). It runs unattended:
 **Typical install time:** ~3 minutes on the test server (30-core Xeon,
 fast connection); on a normal laptop/desktop expect **5–15 minutes**,
 almost all of it downloading the ~2.3 GB environment (the computer barely
-works — it is just waiting on the network).
+works — it is just waiting on the network). **CPU-emulated environments
+(e.g. linux/amd64 Docker on Apple Silicon via QEMU) take noticeably longer
+— often 20–40 minutes** because the conda solver runs through translated
+instructions. The solver may also print a one-line warning of the form
+`libmamba Failed to process downloaded shard for package 'seaborn-base'`;
+it is benign (a network-side cache artifact) and the install continues
+normally.
 
 **Step 3 — make the `oslab` command available.** OSLab installs into an
 isolated environment, so typing `oslab` right after the install will say
@@ -239,7 +256,10 @@ machine. Total wall-clock also depends on your AI agent and hardware.
 
 The engine the agent ultimately calls can be run directly on the bundled
 [`examples/demo-cdk2/`](examples/demo-cdk2/) inputs. This is a deterministic
-check, not the normal user workflow:
+check, **not the normal user workflow** — and intentionally bypasses the
+dashboard, so the run **will not appear in the Progress Monitor or Reports
+tabs**. Verify success by reading the CSV at the bottom of this section
+directly. For the live-progress experience, use Steps 1–5 above instead:
 
 ```bash
 oslab screen small \

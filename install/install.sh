@@ -206,6 +206,26 @@ case "$mode" in
   *) fail "Unsupported mode: $mode" ;;
 esac
 
+# Prerequisite check — system tools the installer needs but typical minimal
+# Linux base images (e.g. fresh ubuntu:22.04 Docker) do NOT bundle. On macOS
+# these ship with the OS, so this check passes silently there. The point is
+# to fail fast with a single readable line instead of letting tar / curl
+# emit a cryptic error several steps later.
+missing_prereqs=()
+for cmd in bash curl tar bzip2 git; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    missing_prereqs+=("$cmd")
+  fi
+done
+if [[ "${#missing_prereqs[@]}" -gt 0 ]]; then
+  printf '[oslab-install] ERROR: missing required system tools: %s\n' "${missing_prereqs[*]}" >&2
+  printf '[oslab-install] Install them via your package manager, then re-run %s.\n' "$0" >&2
+  printf '[oslab-install]   Debian / Ubuntu:  sudo apt-get update && sudo apt-get install -y %s\n' "${missing_prereqs[*]}" >&2
+  printf '[oslab-install]   Fedora / RHEL:    sudo dnf install -y %s\n' "${missing_prereqs[*]}" >&2
+  printf '[oslab-install]   macOS (Homebrew): brew install %s   # (most are bundled with macOS already)\n' "${missing_prereqs[*]}" >&2
+  exit 2
+fi
+
 # The source can come from a packaged tarball (the installer bundle) or
 # directly from a git checkout (the repo root has pyproject.toml + src/oslab).
 if [[ -f "$bundle_dir/open-structure-lab-source.tar.gz" ]]; then

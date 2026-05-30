@@ -4228,13 +4228,32 @@ def _run_cdk2_validation_job(state: DashboardState, job_id: str, payload: dict[s
             state.root / "runs" / f"cdk2-dashboard-validation-{job_id}",
             field_name="validation output directory",
         )
-        validation_ligands = state.root / "data-cache" / "validation" / "tiny_screen.smi"
-        if not validation_ligands.exists():
-            validation_ligands = state.root / "data-cache" / "validation" / "cdk2_known_vs_decoys_20.smi"
+        # Validation needs ligands + receptor + binding-site JSON. Look in the
+        # workspace first; on a fresh install none of these have been generated
+        # yet, so fall back to the package-bundled CDK2 demo (same 5 ligands
+        # the Quick Start uses). Without this fallback the endpoint silently
+        # fails with FileNotFoundError on a fresh workspace.
+        bundled = Path(__file__).resolve().parent / "bundled_demo" / "cdk2"
+        ligand_candidates = [
+            state.root / "data-cache" / "validation" / "tiny_screen.smi",
+            state.root / "data-cache" / "validation" / "cdk2_known_vs_decoys_20.smi",
+            bundled / "demo_ligands.smi",
+        ]
+        validation_ligands = next((p for p in ligand_candidates if p.exists()), ligand_candidates[0])
+        receptor_candidates = [
+            state.root / "runs" / "cdk2-receptor" / "receptor.pdbqt",
+            bundled / "receptor.pdbqt",
+        ]
+        validation_receptor = next((p for p in receptor_candidates if p.exists()), receptor_candidates[0])
+        site_candidates = [
+            state.root / "runs" / "cdk2-site" / "binding_site.json",
+            bundled / "site.json",
+        ]
+        validation_site = next((p for p in site_candidates if p.exists()), site_candidates[0])
         summary = run_small_screen(
             ligands=validation_ligands,
-            receptor_pdbqt=state.root / "runs" / "cdk2-receptor" / "receptor.pdbqt",
-            binding_site_json=state.root / "runs" / "cdk2-site" / "binding_site.json",
+            receptor_pdbqt=validation_receptor,
+            binding_site_json=validation_site,
             output_dir=output_dir,
             max_ligands=int(payload.get("max_ligands") or 5),
             preset=str(payload.get("preset") or "drug_like"),
