@@ -4,6 +4,7 @@ import argparse
 import json
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .binding_sites import box_from_ligand, box_from_residues, find_ligand_residue_names
@@ -411,18 +412,66 @@ def cmd_screen_small(args: argparse.Namespace) -> int:
         workers=args.docking_workers,
     )
     if args.execution_backend == "local":
-        summary = run_small_screen(
-            ligands=args.ligands,
-            receptor_pdbqt=args.receptor,
-            binding_site_json=args.binding_site,
-            output_dir=args.out,
-            max_ligands=args.max_ligands,
-            preset=args.preset,
-            run_plip=not args.no_plip,
-            ligand_prep_options=ligand_options,
-            vina_options=vina_options,
-            report_context=report_context,
-        )
+        # Write a docking-kind progress.json so the dashboard's
+        # /api/progress-scan discovers this CLI run and shows it in the
+        # Progress Monitor / Reports tabs whenever --out is inside the
+        # dashboard workspace root. Without this, oslab screen small was
+        # invisible to the dashboard even though the result CSV was on
+        # disk (audit problem #5).
+        out_dir = Path(args.out)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        progress_path = out_dir / "progress.json"
+
+        def _write_progress(payload: dict[str, object]) -> None:
+            payload.setdefault("kind", "docking")
+            payload["updated_at"] = datetime.now(timezone.utc).isoformat()
+            try:
+                progress_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+            except OSError:
+                pass
+
+        started_at = datetime.now(timezone.utc).isoformat()
+        _write_progress({
+            "status": "running",
+            "current_step": "running",
+            "percent": 0,
+            "started_at": started_at,
+            "message": "oslab screen small in progress",
+        })
+        try:
+            summary = run_small_screen(
+                ligands=args.ligands,
+                receptor_pdbqt=args.receptor,
+                binding_site_json=args.binding_site,
+                output_dir=args.out,
+                max_ligands=args.max_ligands,
+                preset=args.preset,
+                run_plip=not args.no_plip,
+                ligand_prep_options=ligand_options,
+                vina_options=vina_options,
+                report_context=report_context,
+            )
+        except Exception as exc:
+            _write_progress({
+                "status": "failed",
+                "current_step": "failed",
+                "percent": 0,
+                "started_at": started_at,
+                "message": f"oslab screen small failed: {exc}",
+            })
+            raise
+        report_dir = str((out_dir / "report").resolve()) if (out_dir / "report").exists() else ""
+        results_csv = getattr(summary, "results_csv", "") or ""
+        _write_progress({
+            "status": "completed",
+            "current_step": "completed",
+            "percent": 100,
+            "started_at": started_at,
+            "finished_at": datetime.now(timezone.utc).isoformat(),
+            "message": f"docked {summary.docked_ligands} ligand(s); best score {summary.best_score}",
+            "report_dir": report_dir,
+            "results_json": str(getattr(summary, "results_json", "") or ""),
+        })
         print(json.dumps(summary.model_dump(mode="json"), indent=2))
         return 0
 

@@ -256,20 +256,22 @@ machine. Total wall-clock also depends on your AI agent and hardware.
 
 The engine the agent ultimately calls can be run directly on the bundled
 [`examples/demo-cdk2/`](examples/demo-cdk2/) inputs. This is a deterministic
-check, **not the normal user workflow** — and intentionally bypasses the
-dashboard, so the run **will not appear in the Progress Monitor or Reports
-tabs**. Verify success by reading the CSV at the bottom of this section
-directly. For the live-progress experience, use Steps 1–5 above instead:
+check (no AI agent involved). If `--out` points **inside** the dashboard
+workspace (under `<workspace>/reports/<name>-docking/`) the run also
+shows up live in the Progress Monitor and Reports tabs; if `--out` is
+elsewhere, the CSV at the bottom of this section is the only place to
+read the result.
 
 ```bash
 oslab screen small \
   --ligands examples/demo-cdk2/demo_ligands.smi \
   --receptor examples/demo-cdk2/receptor.pdbqt \
   --binding-site examples/demo-cdk2/site.json \
-  --max-ligands 5 --exhaustiveness 8 --no-plip --out ./demo-out
+  --max-ligands 5 --exhaustiveness 8 --no-plip \
+  --out ./demo-ws/reports/cdk2-demo-docking
 ```
 
-A successful check is that **all 5 ligands dock** and `demo-out/report/vina_results.csv`
+A successful check is that **all 5 ligands dock** and `demo-ws/reports/cdk2-demo-docking/report/vina_results.csv`
 ranks them with the top binders around **−9 kcal/mol**. Exact AutoDock Vina
 scores vary slightly with platform and package build, so treat the values as
 approximate (expect roughly −9.0 to −9.4 for the top ligand and ~−7 for the
