@@ -3686,6 +3686,17 @@ def _start_orchestrate_job(state: DashboardState, payload: dict[str, Any], usern
         f"export OSLAB_USER_SAFE={shlex_quote(username)}\n"
         f"cd {shlex_quote(str(user_root))}\n"
     )
+    # OpenFE (Block 4 / FEP) lives in a separate conda env. The oslab CLI
+    # finds the official OpenFE binary via OSLAB_OPENFE_BIN; without it,
+    # `oslab fep run` aborts with "OpenFE backend not installed". Pick the
+    # first openfe binary that exists on this host.
+    openfe_candidates = [
+        Path("/opt/oslab/current/.micromamba/envs/openfe-rbfe/bin/openfe"),
+        Path.home() / ".oslab-openfe-env" / "bin" / "openfe",
+    ]
+    openfe_bin = next((p for p in openfe_candidates if p.is_file()), None)
+    if openfe_bin is not None:
+        header += f"export OSLAB_OPENFE_BIN={shlex_quote(str(openfe_bin))}\n"
     script_path = workdir / "run.sh"
     script_path.write_text(header + script_body, encoding="utf-8")
     script_path.chmod(0o755)
