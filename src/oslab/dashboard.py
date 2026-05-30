@@ -1272,9 +1272,16 @@ def _scan_progress_files(root: Path, query: dict[str, list[str]], username: str 
     seen: set[str] = set()
     scan_dirs: list[Path] = []
     if username:
-        user_runs = (_dashboard_user_root(root, username) / "runs").resolve()
+        user_root = _dashboard_user_root(root, username)
+        user_runs = (user_root / "runs").resolve()
         if user_runs.is_dir():
             scan_dirs.append(user_runs)
+        # Block 1 docking writes its progress.json under reports/<run>-docking/
+        # (not runs/), so a workflow looks empty in the monitor until Block 2
+        # starts. Also walk reports/ so live progress shows up immediately.
+        user_reports = (user_root / "reports").resolve()
+        if user_reports.is_dir() and user_reports not in scan_dirs:
+            scan_dirs.append(user_reports)
     legacy_runs = (root / "runs").resolve()
     if legacy_runs.is_dir() and legacy_runs not in scan_dirs:
         scan_dirs.append(legacy_runs)
@@ -1328,6 +1335,44 @@ def _scan_progress_files(root: Path, query: dict[str, list[str]], username: str 
                 "completed_steps": sum(1 for s in steps if s.get("status") == "completed"),
                 "steps": steps,
             })
+    # The AI agent writes a real Block-1 (docking) progress.json only after
+    # the full ligand-prep step has finished. While the agent is still in
+    # setup (target prep, binding-site, ligand-prep) or running per-ligand
+    # docking, the only live source of truth is the wrapper
+    # `terminal-orchestration` progress.json. Synthesise a Block-1 entry from
+    # it so the user sees a Block-1 bar in the live monitor immediately, not
+    # only after Block 2 starts.
+    real_labels = {item["run_label"] for item in items}
+    _SETUP_STEPS = {"target", "target-prep", "binding-site", "ligands", "ligand-prep"}
+    for item in list(items):
+        if item.get("kind") != "terminal-orchestration":
+            continue
+        label = item.get("run_label", "")
+        if not label.startswith("terminal-orchestration-"):
+            continue
+        base = label[len("terminal-orchestration-"):]
+        synth_label = f"{base}-docking"
+        if synth_label in real_labels:
+            continue
+        current = (item.get("current_step") or "").strip()
+        if current in _SETUP_STEPS:
+            synth_current = f"setup: {current}"
+        elif current == "docking":
+            synth_current = "docking"
+        elif current == "report":
+            synth_current = "wrapping up"
+        else:
+            synth_current = current or "running"
+        synth = dict(item)
+        synth.update({
+            "run_label": synth_label,
+            # kind="docking" so the dashboard's BLOCK_MAP groups this as Block 1.
+            "kind": "docking",
+            "current_step": synth_current,
+            "synthesized_from": label,
+        })
+        items.append(synth)
+        real_labels.add(synth_label)
     return {"runs": items}
 
 
@@ -3636,6 +3681,7 @@ def _start_orchestrate_job(state: DashboardState, payload: dict[str, Any], usern
         "#!/usr/bin/env bash\n"
         "set -eo pipefail\n"
         f"export OSLAB_ROOT={shlex_quote(str(state.root))}\n"
+        f"export OSLAB_USER={shlex_quote(username)}\n"
         f"export USER_DIR={shlex_quote(str(user_root))}\n"
         f"export OSLAB_USER_SAFE={shlex_quote(username)}\n"
         f"cd {shlex_quote(str(user_root))}\n"
@@ -3673,6 +3719,15 @@ def _start_orchestrate_job(state: DashboardState, payload: dict[str, Any], usern
         },
     ))
     env_bin = "/opt/oslab/current/.micromamba/envs/open-structure-lab/bin"
+    # PLIP is missing from the production env (admin-owned, can't be modified
+    # by the dashboard user). Fall back to a user-space PLIP env if one exists
+    # at $HOME/.oslab-plip-env/bin/plip, prepended to PATH so subprocess calls
+    # to `plip` from `oslab refine hits` find the binary.
+    extra_bins: list[str] = []
+    user_plip_bin = Path.home() / ".oslab-plip-env" / "bin"
+    if (user_plip_bin / "plip").is_file():
+        extra_bins.append(str(user_plip_bin))
+    path_prefix = ":".join(extra_bins + [env_bin])
     screen = shutil.which("screen")
     if screen:
         session_name = f"oslab-orch-{job_id}"
@@ -3680,7 +3735,7 @@ def _start_orchestrate_job(state: DashboardState, payload: dict[str, Any], usern
         # oslab environment binaries are on PATH so the script can call them
         # without absolute paths.
         wrapped = (
-            f"export PATH={shlex_quote(env_bin)}:$PATH && "
+            f"export PATH={shlex_quote(path_prefix)}:$PATH && "
             f"bash {shlex_quote(str(script_path))} > {shlex_quote(str(log_path))} 2>&1; "
             # When the script finishes, mark progress completed/failed so the
             # monitor stops showing "queued".

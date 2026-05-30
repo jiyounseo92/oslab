@@ -56,12 +56,35 @@
 
   // Header-only updater. Card listing is drawn by renderLiveStatus into the
   // body of the same <details>, so we don't write to #monitorBody here.
-  function renderMonitor(runs) {
+  function renderMonitor(runs, rawRuns) {
     const pulse = $("monitorPulse");
     const summary = $("monitorSummary");
     const meta = $("monitorMeta");
     if (!pulse || !summary || !meta) return;
     if (!Array.isArray(runs) || runs.length === 0) {
+      // Block-level progress.json hasn't been written yet, but a wrapper
+      // job may still be advancing through setup. Reflect that in the header
+      // so the bar doesn't say "No runs detected" mid-run.
+      const wrappers = Array.isArray(rawRuns) ? rawRuns.filter((r) => {
+        const k = String(r.kind || "").toLowerCase();
+        return k === "terminal-orchestration" || k === "orchestrate"
+          || String(r.run_label || "").startsWith("terminal-orchestration-");
+      }) : [];
+      const wrapper = wrappers.find((w) => String(w.kind || "").toLowerCase() === "terminal-orchestration")
+        || wrappers[0];
+      if (wrapper) {
+        const stat = jobStatusClass(wrapper.status) || "running";
+        if (stat === "failed") {
+          pulse.className = "monitor-pulse failed";
+          summary.textContent = "AI agent reported a failure";
+        } else {
+          pulse.className = "monitor-pulse running";
+          const stepRaw = wrapper.current_step || "setup";
+          summary.textContent = `AI agent working — ${stepRaw}`;
+        }
+        meta.textContent = "block bars appear once Block 1 starts";
+        return;
+      }
       pulse.className = "monitor-pulse";
       summary.textContent = "No runs detected";
       meta.textContent = "";
@@ -91,14 +114,20 @@
     }
   }
 
-  // Internal meta-trackers (e.g. terminal-orchestration) duplicate the per-step
-  // runs shown to the user. Hide them so the live-status list stays clean.
-  const INTERNAL_KINDS = new Set(["terminal-orchestration"]);
+  // Internal meta-trackers (e.g. terminal-orchestration, orchestrate) duplicate
+  // the per-step runs shown to the user. Hide them so the live-status list
+  // stays clean — the actual block progress lives in the sub-runs
+  // (-docking, -hit-refinement, -md-optimization, -fep).
+  const INTERNAL_KINDS = new Set(["terminal-orchestration", "orchestrate"]);
+  // run_label suffixes that look like a 12-hex job id (from /api/orchestrate);
+  // these are meta-wrappers, not block sub-runs.
+  const ORCH_JOB_ID_RE = /-[0-9a-f]{12}$/;
 
   function isUserFacingRun(r) {
     if (!r) return false;
     if (INTERNAL_KINDS.has(String(r.kind || "").toLowerCase())) return false;
     if (String(r.run_label || "").startsWith("terminal-orchestration-")) return false;
+    if (ORCH_JOB_ID_RE.test(String(r.run_label || ""))) return false;
     return true;
   }
 
@@ -184,8 +213,44 @@
     const active = $("liveStatusActive");
     const recent = $("liveStatusRecent");
     if (!active || !recent) return;
-    const visible = (runs || []).filter(isUserFacingRun);
+    const allRuns = runs || [];
+    const visible = allRuns.filter(isUserFacingRun);
     if (visible.length === 0) {
+      // If a terminal-orchestration wrapper exists, the AI agent is mid-run
+      // but hasn't written a Block-1 progress.json yet (it's in target prep,
+      // ligand prep, etc.). Surface its current_step so the user can see
+      // something is happening and doesn't think the run silently died.
+      // terminal-orchestration updates per step; the orchestrate job record
+      // tends to stay at "queued", so prefer the former when both exist.
+      const wrappers = allRuns.filter((r) => {
+        const k = String(r.kind || "").toLowerCase();
+        if (k === "orchestrate" || k === "terminal-orchestration") return true;
+        if (String(r.run_label || "").startsWith("terminal-orchestration-")) return true;
+        return false;
+      });
+      const wrapper = wrappers.find((w) => String(w.kind || "").toLowerCase() === "terminal-orchestration")
+        || wrappers[0];
+      if (wrapper) {
+        const stat = jobStatusClass(wrapper.status) || "running";
+        const stepRaw = wrapper.current_step ? String(wrapper.current_step) : "setting up";
+        const STEP_LABEL = {
+          "target": "fetching the target structure",
+          "target-prep": "preparing the receptor",
+          "binding-site": "computing the binding site",
+          "ligands": "loading the ligand library",
+          "ligand-prep": "preparing ligand 3D structures",
+          "docking": "Block 1 — running AutoDock Vina docking",
+          "report": "writing the run report",
+          "queued": "queued (waiting for the AI agent to pick this up)",
+        };
+        const friendly = STEP_LABEL[stepRaw] || stepRaw;
+        const label = stat === "failed"
+          ? `<strong>The AI agent reported a failure during <code>${escapeHtml(stepRaw)}</code>.</strong> Check the run log on the GPU host, then click <em>Copy AI prompt</em> again to restart from a clean state.`
+          : `<strong>AI agent working — ${escapeHtml(friendly)}.</strong> Once Block&nbsp;1 docking starts, four progress bars (Docking → Hit Refinement → MD → FEP) will appear here. The bundled 5-ligand demo finishes in ~30–40 min on the shared A10 GPU.`;
+        active.innerHTML = `<div class="muted">${label}</div>`;
+        recent.innerHTML = "";
+        return;
+      }
       active.innerHTML = '<div class="muted">No runs detected yet. Once you copy the script and run it (in terminal or via AI agent), each block will appear here with a progress bar.</div>';
       recent.innerHTML = "";
       return;
@@ -255,12 +320,23 @@
       ? `<a href="?view=report&run=${encodeURIComponent(reportRunLabel)}" class="block-bar-report view-report-btn" data-run-label="${escapeHtml(reportRunLabel)}">view report →</a>`
       : "";
     const statusDot = status === "running" ? "●" : status === "completed" ? "✓" : status === "failed" ? "✗" : "○";
+    const BLOCK_DEFAULT_TITLE = {
+      1: "Block 1: Docking & Hit Clustering",
+      2: "Block 2: Hit Refinement",
+      3: "Block 3: MD Optimization",
+      4: "Block 4: FEP",
+    };
+    const titleText = (block._title && String(block._title).trim())
+      || BLOCK_DEFAULT_TITLE[blockNum]
+      || `Block ${blockNum}`;
+    // Title gets its own line above the dot/percent row so it cannot be
+    // hidden by flex-shrink, overflow, or other layout side-effects.
     return `
       <div class="block-bar block-bar-${status}">
+        <div class="block-bar-title-line" style="font-weight:700;font-size:14px;margin-bottom:4px;color:#0c1f24;">${escapeHtml(titleText)}${subSlugTag}</div>
         <div class="block-bar-head">
           <span class="block-bar-dot">${statusDot}</span>
-          <span class="block-bar-title">${escapeHtml(block._title)}${subSlugTag}</span>
-          <span class="block-bar-meta muted">${currentStep ? currentStep + " · " : ""}${pctText}</span>
+          <span class="block-bar-meta muted" style="flex:1 1 auto;text-align:right;">${currentStep ? currentStep + " · " : ""}${pctText}</span>
         </div>
         <div class="block-bar-progress"><div class="block-bar-fill" style="width:${Math.max(2, pct)}%"></div></div>
         ${reportLink ? `<div class="block-bar-foot">${reportLink}</div>` : ""}
@@ -300,12 +376,13 @@
         } catch (e) {/* ignore */}
       }
       const scanData = scanRes && scanRes.ok ? await scanRes.json() : null;
-      const runs = ((scanData && scanData.runs) || []).filter(isUserFacingRun);
+      const rawRuns = (scanData && scanData.runs) || [];
+      const runs = rawRuns.filter(isUserFacingRun);
       const key = JSON.stringify(runs.map((r) => [r.run_label, r.status, r.percent, r.current_step]));
       if (key === lastJobsPayloadKey) return;
       lastJobsPayloadKey = key;
-      renderMonitor(runs);
-      renderLiveStatus(runs);
+      renderMonitor(runs, rawRuns);
+      renderLiveStatus(rawRuns);
     } catch (err) {
       // Silent: dashboard.js handles broader errors; the monitor bar should not be noisy.
     }
