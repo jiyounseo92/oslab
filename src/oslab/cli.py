@@ -746,12 +746,50 @@ def cmd_fep_run(args: argparse.Namespace) -> int:
         analog_library_dict = library.to_dict()
     else:
         top_n = min(args.top_n, len(ranked))
-        if top_n < 2:
-            raise SystemExit("Need at least 2 MD gate pass ligands for top-N FEP.")
-        selected = [name for name, _ in ranked[:top_n]]
-        smiles_map = md_smiles_map
-        reference = selected[0] if selected else ""
-        receptor_pdb = _receptor_pdb_from_md_run({"ligand_results": ligand_results}, reference)
+        if top_n < 1:
+            raise SystemExit("Need at least 1 MD gate pass ligand for top-N FEP.")
+        if top_n == 1:
+            # Only one MD-pass ligand: fall back to analog-library mode using
+            # it as the parent so --n-analogs supplies the perturbation
+            # partners. This keeps the Quick Start path working when the user
+            # configures Block 3 with top_n=1 (the default after v1.1.5).
+            if int(args.n_analogs) < 1:
+                raise SystemExit(
+                    "Only 1 MD gate pass ligand available for top-N FEP; "
+                    "pass --n-analogs >= 1 to auto-generate perturbation partners."
+                )
+            parent_name = ranked[0][0]
+            if parent_name not in md_smiles_map:
+                raise SystemExit(
+                    f"Sole MD gate pass ligand {parent_name!r} has no SMILES in the MD run; "
+                    "cannot auto-generate analog partners."
+                )
+            parent_smiles = md_smiles_map[parent_name]
+            print(
+                f"[fep] Only 1 MD gate pass ligand ({parent_name}); "
+                f"falling back to analog-library mode with --n-analogs={int(args.n_analogs)}."
+            )
+            from .analog_library import generate_analogs
+            library = generate_analogs(
+                parent_smiles,
+                parent_name=parent_name,
+                n_max=max(1, int(args.n_analogs)),
+            )
+            if not library.analogs:
+                raise SystemExit(
+                    f"Analog library for {parent_name} is empty after filtering "
+                    f"(rejected: {library.rejected_summary})."
+                )
+            smiles_map = library.smiles_map()
+            selected = list(smiles_map.keys())
+            reference = parent_name
+            receptor_pdb = _receptor_pdb_from_md_run({"ligand_results": ligand_results}, parent_name)
+            analog_library_dict = library.to_dict()
+        else:
+            selected = [name for name, _ in ranked[:top_n]]
+            smiles_map = md_smiles_map
+            reference = selected[0] if selected else ""
+            receptor_pdb = _receptor_pdb_from_md_run({"ligand_results": ligand_results}, reference)
 
     out = args.out or root / "reports" / f"fep-{session_id}"
     return run_fep_pipeline(
