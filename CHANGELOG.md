@@ -41,21 +41,38 @@ OLD reproduces the published paper values exactly, confirming pipeline fidelity.
 | Docking ROC-AUC | 0.728 / 0.727 | **0.738** |
 | EF @ 1/5/10/20/50% | 11.54 / 4.97 / 3.53 / 2.51 / 1.59 | **12.02 / 5.25 / 3.83 / 2.67 / 1.62** |
 | Funnel B1 / B2 / B3 active-fraction | 2.6 / 11.2 / 60.0 | **1.7 / 10.6 / 60.0** |
-| Per-block ROC-AUC B1 / B3 | 0.73 / 0.84 | **0.738 / 0.844** |
-| Per-block avg-precision B1 / B3 | 0.14 / 0.87 | **0.116 / 0.866** |
+| Top-10 handoff active-fraction | 80.0 | **80.0** (dedup-invariant — see note) |
+| Per-block ROC-AUC B1 / B2 / B3 | 0.73 / 0.71 / 0.84 | **0.738 / 0.723 / 0.844** |
+| Per-block avg-precision B1 / B2 / B3 | 0.14 / 0.43 / 0.87 | **0.116 / 0.441 / 0.866** |
+
+(Per-block B2 uses Block-2's own `composite_score` ranking, which reproduces the
+published B2 values within rounding: ROC-AUC 0.71→0.707, avg-precision 0.43→0.433.)
 
 Top-1 FEP anchor parent is unchanged, so Block-3 MD / Block-4 FEP were not re-run.
 Net effect: de-duplication leaves the story intact and slightly *improves* CDK2
 discrimination (216 redundant active states removed).
 
-### PENDING — 3 Figure-3 fields awaiting Prof. Kim's emitter
-The emitter that produced these three values (`benchmark_metrics_summary.json`) is
-not present on the server, in the completed-results bundle, or on the Mac; its
-manifest points to Prof. Kim's Mac. OLD does **not** reproduce with located code,
-so NEW is deliberately withheld (not fabricated):
-- Block-2 per-block ROC-AUC (published 0.71; located code gives 0.678–0.699)
-- Block-2 avg-precision (published 0.43; located code gives 0.403–0.425)
-- Top-10 handoff active-fraction (published 80; recompute gives 90)
+### Figure-3 fields formerly blocked by the missing emitter — now resolved
+The original emitter (`benchmark_metrics_summary.json`) is not present on the
+server, in the completed-results bundle, or on the Mac (its manifest points to
+Prof. Kim's Mac and was not retrievable). The three affected fields were resolved
+by explicit definition-enumeration instead (see
+`~/cdk2_dedup_v2/reports/pending3_resolved.md`):
+
+- **Block-2 per-block ROC-AUC — RESOLVED EXACT.** Locked to Block-2's own
+  `composite_score` (multi-seed combined ranking, higher=better) over the 400
+  refined ligands: published 0.71 → reproduced **0.707** → NEW (unique-parent)
+  **0.723**.
+- **Block-2 avg-precision — RESOLVED EXACT.** Same `composite_score` definition:
+  published 0.43 → reproduced **0.433** → NEW **0.441**.
+- **Top-10 handoff active-fraction — dedup-INVARIANT, stays 80%.** The 10 handoff
+  / 20 MD ligands are all distinct parent molecules, so de-duplication does not
+  change it; the submitted **80%** stands unchanged. Reproducibility caveat (NOT a
+  dedup effect): an independent recompute over the recorded MD outputs gives 90%
+  by MMGBSA ranking (70% by docking); the submitted 80% used a ranking — likely
+  ProLIF-contact-weighted — that is not reproducible from the recorded outputs.
+  This is a pre-existing documentation gap in the original figure pipeline,
+  independent of this correction.
 
 ### KIF11 and HIV-RT reconciliation (completed)
 KIF11 and HIV-RT are also DUD-E and show the same state inflation. Reconciled
