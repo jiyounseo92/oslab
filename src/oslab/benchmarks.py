@@ -51,7 +51,8 @@ DUDE_CDK2 = Benchmark(
     name="cdk2-dude",
     description=(
         "DUD-E CDK2 active/decoy benchmark library "
-        "(631 actives, 23,918 decoys; receptor 1HCK)."
+        "(475 unique actives, 26,436 unique decoys after parent-molecule "
+        "de-duplication of 747/26,770 protomer/tautomer states; receptor 1HCK)."
     ),
     source_url=f"{_DUDE_BASE}/cdk2",
     files=_dude_files("cdk2"),
@@ -94,6 +95,74 @@ def benchmark_dir(workspace: Path, benchmark: Benchmark) -> Path:
 def is_complete(workspace: Path, benchmark: Benchmark) -> bool:
     target = benchmark_dir(workspace, benchmark)
     return all((target / f.relpath).exists() and (target / f.relpath).stat().st_size > 0 for f in benchmark.files)
+
+
+def _parent_key(smiles: str) -> Optional[str]:
+    """Structural parent-molecule key for de-duplicating DUD-E states.
+
+    DUD-E stores one molecule as several protonation / tautomer states, one per
+    line of ``*_final.ism`` (and one per record of ``*_final.sdf.gz``). Counting
+    those lines as distinct ligands inflates library sizes. Collapsing on this key
+    counts unique molecules instead: largest-fragment parent -> neutralised
+    (Uncharger) -> InChIKey skeleton block (first 14 chars), which is invariant to
+    protonation and to the tautomers DUD-E enumerates. Returns ``None`` when RDKit
+    is unavailable or the SMILES cannot be parsed/standardised.
+    """
+    try:
+        from rdkit import Chem
+        from rdkit.Chem import inchi
+        from rdkit.Chem.MolStandardize import rdMolStandardize
+    except Exception:
+        return None
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    try:
+        parent = rdMolStandardize.Uncharger().uncharge(rdMolStandardize.FragmentParent(mol))
+        key = inchi.MolToInchiKey(parent)
+    except Exception:
+        return None
+    return key[:14] if key else None
+
+
+def _ism_smiles(path: Path):
+    """Yield the SMILES (first whitespace-delimited token) of each .ism line."""
+    with path.open("r", encoding="utf-8", errors="ignore") as handle:
+        for line in handle:
+            line = line.strip()
+            if line:
+                yield line.split()[0]
+
+
+def unique_parent_counts(workspace: Path, benchmark: Benchmark) -> dict:
+    """Collapse DUD-E ionization/tautomer states to unique parent molecules.
+
+    Reads the fetched ``actives_final.ism`` / ``decoys_final.ism`` and returns unique
+    parent-molecule counts alongside the raw state counts. This is the ingestion-time
+    de-duplication OSLab v1.1.8 adds so downstream counts and enrichment reflect unique
+    molecules rather than protomer/tautomer states. Returns ``{"available": False}`` if
+    RDKit or the .ism files are missing (the download still succeeds).
+    """
+    target = benchmark_dir(workspace, benchmark)
+    ism = {"actives": target / "actives_final.ism", "decoys": target / "decoys_final.ism"}
+    if not all(p.exists() for p in ism.values()):
+        return {"available": False, "reason": "actives_final.ism / decoys_final.ism not present"}
+    if _parent_key("CCO") is None:
+        return {"available": False, "reason": "RDKit not available for parent-molecule de-duplication"}
+    result: dict = {"available": True, "unstandardizable": 0}
+    for label, path in ism.items():
+        states = 0
+        parents: set[str] = set()
+        for smi in _ism_smiles(path):
+            states += 1
+            key = _parent_key(smi)
+            if key is None:
+                result["unstandardizable"] += 1
+                continue
+            parents.add(key)
+        result[f"{label}_states"] = states
+        result[f"{label}_unique_parents"] = len(parents)
+    return result
 
 
 def _download(url: str, dest: Path, *, chunk: int = 1 << 16) -> int:
@@ -162,6 +231,9 @@ def fetch_benchmark(
                 on_file(f, "error", 0)
             raise
     report["complete"] = is_complete(workspace, benchmark)
+    # v1.1.8: collapse DUD-E protomer/tautomer states to unique parent molecules so
+    # the reported library size reflects unique molecules, not states.
+    report["unique_parent_counts"] = unique_parent_counts(workspace, benchmark)
     return report
 
 

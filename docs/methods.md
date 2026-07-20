@@ -355,7 +355,7 @@ the dashboard open.
 ### 2.7 Reproducing the manuscript benchmark (DUD-E CDK2)
 
 The published CDK2 enrichment benchmark uses the DUD-E CDK2 active/decoy
-library: 631 known actives and 23,918 property-matched decoys, receptor
+library: 475 unique known actives and 26,436 unique property-matched decoys (parent-collapsed from 747/26,770 protomer/tautomer states), receptor
 1HCK. A fresh OSLab install downloads this library from the DUD-E project's
 canonical URL set with one CLI call:
 

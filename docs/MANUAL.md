@@ -169,7 +169,7 @@ The published benchmarks use DUD-E active/decoy libraries. Download any of
 them into your workspace with one command:
 
 ```bash
-oslab fetch-benchmark cdk2-dude  --to <your_workspace>   # 631 actives, 23,918 decoys, receptor 1HCK
+oslab fetch-benchmark cdk2-dude  --to <your_workspace>   # 475 unique actives, 26,436 unique decoys (deduplicated from 747/26,770 protomer/tautomer states), receptor 1HCK
 oslab fetch-benchmark kif11-dude --to <your_workspace>   # 116 actives, 6,850 decoys, receptor 3CJO
 oslab fetch-benchmark hivrt-dude --to <your_workspace>   # 338 actives, 18,672 decoys, receptor 3LAN
 ```

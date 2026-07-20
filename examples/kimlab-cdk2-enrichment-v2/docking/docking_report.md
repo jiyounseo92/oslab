@@ -2,6 +2,15 @@
 
 Generated: May 13, 2026 at 1:49 PM UTC
 
+> **Note (OSLab v1.1.8 de-duplication correction).** The ligand counts below
+> (`24549` requested / prepared / screened) are the raw **docked-state** counts
+> and are preserved here as a faithful record of the original run. DUD-E stores
+> one molecule as several protonation/tautomer states; collapsing to unique
+> parent molecules (RDKit FragmentParent → Uncharger → InChIKey[:14]) yields
+> **24,050 unique molecules (415 actives, 23,635 decoys)** for this docked set.
+> Internal numbers in this historical report are intentionally left unchanged.
+> See the repository CHANGELOG (v1.1.8) for the corrected counts and enrichment.
+
 ## Run Overview
 
 | Field | Value |

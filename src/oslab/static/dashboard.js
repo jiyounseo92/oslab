@@ -432,7 +432,7 @@
         const cdk2Prepared = `${benchmarkRoot}/prepared/ligand-pdbqt`;
         if (!seen.has(cdk2Prepared)) {
           seen.add(cdk2Prepared);
-          options.push([cdk2Prepared, "CDK2 benchmark DUD-E prepared PDBQT library (shared read-only; Vina-ready; 24,549 ligands)"]);
+          options.push([cdk2Prepared, "CDK2 benchmark DUD-E prepared PDBQT library (shared read-only; Vina-ready; 24,050 unique-parent ligands, 24,549 docked states)"]);
         }
       }
       for (const job of state.jobs || []) {
@@ -467,7 +467,7 @@
         return {
           name: "CDK2 benchmark DUD-E prepared PDBQT library",
           location: path,
-          molecule_count: 24549,
+          molecule_count: 24050,
           vina_ready: true,
           prep: "none",
           formats: ["pdbqt"],

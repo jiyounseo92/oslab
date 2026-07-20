@@ -2,7 +2,7 @@
 
 These are the curated per-block outputs from the CDK2 enrichment benchmark
 run referenced in the manuscript. Input dataset: DUD-E CDK2 (631 actives,
-23,918 decoys, receptor 1HCK).
+23,635 unique decoys after parent de-duplication; 631/23,918 raw states; receptor 1HCK).
 
 Full per-ligand files (every docked pose, every MD frame, every FEP
 transformation) are too large to ship in the repo; they are attached as a
@@ -17,7 +17,7 @@ downloading the full bundle.
 | File | Description |
 | --- | --- |
 | `docking_report.md` | Per-block markdown report with ranked top hits, enrichment metrics, and figures |
-| `vina_results.csv.gz` | Full Vina ranking for all 24,549 ligands (gzipped) |
+| `vina_results.csv.gz` | Full Vina ranking for all 24,549 docked states (24,050 unique parent molecules; gzipped) |
 | `small_screen_summary.json.gz` | Machine-readable summary used by the dashboard's Reports tab |
 
 ### Block 2 — Hit refinement (`hit-refinement/`)
