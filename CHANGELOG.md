@@ -57,20 +57,34 @@ so NEW is deliberately withheld (not fabricated):
 - Block-2 avg-precision (published 0.43; located code gives 0.403–0.425)
 - Top-10 handoff active-fraction (published 80; recompute gives 90)
 
-### PENDING — KIF11 and HIV-RT separate reconciliation
-KIF11 and HIV-RT are also DUD-E and show the same state inflation; they must be
-reconciled separately (fetch-line counts in `benchmarks.py`/README/MANUAL **and**
-the manuscript Figure-3 panel d/e entries). Docked-set re-enrichment on unique
-parents (no re-docking) already computed, for the record:
+### KIF11 and HIV-RT reconciliation (completed)
+KIF11 and HIV-RT are also DUD-E and show the same state inflation. Reconciled
+against Prof. Kim's canonical benchmark data
+(`from_Dr.Kim/KIF11_benchmark_data/kif11_dude_benchmark_metrics_recalculated_full.json`);
+KIF11 panel d/e uses that recalculated-full scored set (6,966; the 142 failed
+decoys repaired), HIV-RT uses the docked set (no recalculated-full exists). OLD
+reproduces the paper values, confirming fidelity. Method identical to CDK2
+(FragmentParent → Uncharger → InChIKey[:14], best score per parent, no re-docking).
+
+Fetch-line counts (full downloaded library, unique parents):
+
+| Target | OLD states (actives/decoys) | NEW unique parents (actives/decoys) |
+|---|---|---|
+| KIF11 | 116 / 6,850 | **113 / 6,633** |
+| HIV-RT | 338 / 18,891 | **338 / 18,210** (9 decoys unstandardizable) |
+
+(Also corrects the prior HIV-RT fetch-line baseline, which used the docked
+`18,672` decoys instead of the full-library `18,891`.)
+
+Panel d/e (docking ROC-AUC + EF@1%, unique parents):
 
 | Target | ROC-AUC paper / OLD / NEW | EF@1% paper / OLD / NEW | actives OLD→NEW |
 |---|---|---|---|
-| KIF11 | 0.818 / 0.817 / **0.814** | 15.4 / 15.35 / **15.75** | 116 → 113 |
-| HIV-RT | 0.678 / 0.678 / **0.675** | 2.1 / 2.08 / **2.07** | 337 → 337 |
+| KIF11 (recalc-full, n=6,966) | 0.818 / 0.818 / **0.815** | 15.4 / 15.44 / **15.80** | 116 → 113 |
+| HIV-RT (docked, n=19,009) | 0.678 / 0.678 / **0.675** | 2.1 / 2.07 / **2.07** | 337 → 337 |
 
-Their fetch-line decoy baselines in `benchmarks.py` are also internally
-inconsistent (KIF11 6,850 = label file; HIV-RT 18,672 = docked) and were left
-unchanged pending that reconciliation.
+HIV-RT actives do not collapse at all (338→338 library, 337→337 docked); KIF11
+actives collapse by 3 (116→113). Both leave the discrimination story unchanged.
 
 ### Changed
 - `src/oslab/benchmarks.py`: added `_parent_key`, `_ism_smiles`, and
@@ -83,6 +97,10 @@ unchanged pending that reconciliation.
   `benchmarks.py` description) → 475 unique actives / 26,436 unique decoys;
   docked-context strings (`static/dashboard.js`, `examples/kimlab-cdk2-enrichment-v2/README.md`)
   → 415 / 23,635 / 24,050.
+- KIF11 / HIV-RT fetch-line counts updated to unique parents (`benchmarks.py`
+  descriptions, `README.md`, `docs/MANUAL.md`): KIF11 → 113 / 6,633; HIV-RT →
+  338 / 18,210 (also corrects the HIV-RT baseline from the docked 18,672 to the
+  full-library 18,891 states).
 - `examples/kimlab-cdk2-enrichment-v2/docking/docking_report.md`: added a header
   note pointing to the corrected unique-parent counts; the historical report's
   internal numbers are intentionally preserved.

@@ -313,8 +313,8 @@ directly from DUD-E into your workspace:
 
 ```bash
 oslab fetch-benchmark cdk2-dude  --to <your_workspace>   # 475 unique actives, 26,436 unique decoys (deduplicated from 747/26,770 protomer/tautomer states), receptor 1HCK
-oslab fetch-benchmark kif11-dude --to <your_workspace>   # 116 actives, 6,850 decoys, receptor 3CJO
-oslab fetch-benchmark hivrt-dude --to <your_workspace>   # 338 actives, 18,672 decoys, receptor 3LAN
+oslab fetch-benchmark kif11-dude --to <your_workspace>   # 113 unique actives, 6,633 unique decoys (deduplicated from 116/6,850 protomer/tautomer states), receptor 3CJO
+oslab fetch-benchmark hivrt-dude --to <your_workspace>   # 338 unique actives, 18,210 unique decoys (deduplicated from 338/18,891 protomer/tautomer states), receptor 3LAN
 oslab fetch-benchmark --list                             # list all registered benchmarks
 ```
 

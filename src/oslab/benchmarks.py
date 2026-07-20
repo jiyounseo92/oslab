@@ -63,7 +63,8 @@ DUDE_KIF11 = Benchmark(
     name="kif11-dude",
     description=(
         "DUD-E KIF11 (Eg5) active/decoy benchmark library "
-        "(116 actives, 6,850 decoys; receptor 3CJO)."
+        "(113 unique actives, 6,633 unique decoys after parent-molecule "
+        "de-duplication of 116/6,850 protomer/tautomer states; receptor 3CJO)."
     ),
     source_url=f"{_DUDE_BASE}/kif11",
     files=_dude_files("kif11"),
@@ -74,7 +75,8 @@ DUDE_HIVRT = Benchmark(
     name="hivrt-dude",
     description=(
         "DUD-E HIV reverse-transcriptase active/decoy benchmark library "
-        "(338 actives, 18,672 decoys; receptor 3LAN)."
+        "(338 unique actives, 18,210 unique decoys after parent-molecule "
+        "de-duplication of 338/18,891 protomer/tautomer states; receptor 3LAN)."
     ),
     source_url=f"{_DUDE_BASE}/hivrt",
     files=_dude_files("hivrt"),
