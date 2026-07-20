@@ -65,14 +65,17 @@ by explicit definition-enumeration instead (see
   **0.723**.
 - **Block-2 avg-precision — RESOLVED EXACT.** Same `composite_score` definition:
   published 0.43 → reproduced **0.433** → NEW **0.441**.
-- **Top-10 handoff active-fraction — dedup-INVARIANT, stays 80%.** The 10 handoff
-  / 20 MD ligands are all distinct parent molecules, so de-duplication does not
-  change it; the submitted **80%** stands unchanged. Reproducibility caveat (NOT a
-  dedup effect): an independent recompute over the recorded MD outputs gives 90%
-  by MMGBSA ranking (70% by docking); the submitted 80% used a ranking — likely
-  ProLIF-contact-weighted — that is not reproducible from the recorded outputs.
-  This is a pre-existing documentation gap in the original figure pipeline,
-  independent of this correction.
+- **Top-10 handoff active-fraction — RESOLVED EXACT, stays 80%.** The published
+  80% is reproduced exactly as the top-10 **docking** active fraction (8/10
+  actives), and is dedup-invariant in fraction (8 actives before and after), so
+  the submitted **80%** stands. (This supersedes the earlier "90% by MMGBSA /
+  likely ProLIF-weighted, unreproducible" note — that used the wrong population,
+  the 20 MD ligands rather than the top-10 docking hits.) One nuance: the top-10
+  docking *table membership* changes under dedup — ranks 1 & 2
+  (`active_0065` / `active_0066`) are the same parent (`SVGBMXDLMHCYLQ`, two
+  protomer states); dedup keeps rank-1 `active_0065`, drops the duplicate, and
+  promotes former rank-11 `active_0187` into slot 10, leaving actives 8/10 = 80%.
+  The top-10 composite, top-10 MD, and FEP tables are unchanged (distinct parents).
 
 ### KIF11 and HIV-RT reconciliation (completed)
 KIF11 and HIV-RT are also DUD-E and show the same state inflation. Reconciled
