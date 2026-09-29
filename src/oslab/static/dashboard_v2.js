@@ -450,7 +450,7 @@
   // a fallback) so we set the right option even when the visible label differs.
   // Budget targets ~20–25 min total on the Lambda A10 GPU. Funnel sized
   // to take 5 ligands end-to-end through all four blocks fast, not a
-  // publication run. Block 3 stays at 2 ns so the MD-gate (30% contact
+  // publication run. Block 3 stays at 2 ns so the MD-gate (25% contact
   // occupancy over production) doesn't auto-skip Block 4.
   //   Block 1 docking (CPU)        ~3 min    — 5 ligands × exh=8
   //   Block 2 hit refinement (CPU) ~1–2 min  — top 3, exh=8, 1 seed

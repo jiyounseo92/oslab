@@ -4,6 +4,48 @@ All notable changes to OSLab are documented here. Versions correspond to the
 release tags described in the project state notes; the `pyproject.toml` version
 string is intentionally not bumped per-tag (the git tag is the source of truth).
 
+## v1.1.9 — MD gate stable-contact occupancy threshold set to 0.25
+
+Base: v1.1.8 (`v1.1.8-dedup`). v1.1.7 remains skipped.
+
+### Changed — MD structural quality-control gate threshold
+`MD_GATE_STABLE_CONTACT_OCCUPANCY` is changed from `0.30` to `0.25`, so that a
+protein-ligand contact persisting for at least 25% of the production trajectory
+counts toward the pass criterion. This matches the criterion reported in the
+accompanying manuscript (Results, Methods and Supplementary Information), which
+states a >=25% trajectory-occupancy requirement. No other gate criterion is
+changed: the ligand-RMSD review (3.0 A) and fail (5.0 A) thresholds, the review
+occupancy threshold (0.10) and the minimum stable-contact count (1) are
+unchanged, and MM-GBSA remains an annotation rather than a gate criterion.
+
+The comment describing the gate in `src/oslab/static/dashboard_v2.js` is updated
+to match. It is documentation only and affects no behaviour.
+
+### Effect on archived runs (verified, not estimated)
+The released `_classify_md_gate` was executed against every archived Block-3 run
+(35 runs, 162 ligands) at both thresholds. 15 of 162 ligands change verdict, all
+`review -> pass`; no ligand moves out of `pass`, and the `fail` count is
+identical (82) under both thresholds.
+
+Only one affected run contributes values to the manuscript:
+
+| run | pass @0.30 | pass @0.25 | passing actives |
+|---|---:|---:|---:|
+| `kimlab-cdk2-enrichment-v2-md-optimization` | 13 | **14** | 9 (both) |
+
+This reproduces the published Block-3 figures (14 passing, 9 of them actives,
+64.3%). The single ligand that changes is `022546_decoy_24457`, whose maximum
+contact occupancy is exactly 0.25. The remaining 14 changed ligands belong to
+`block3-affinity-validation-*`, `hivrt-benchmark-workflow-*` and
+`wang-cdk2-block3-validation-*`, none of which supply a published value; the
+HIV-RT and KIF11 results in the manuscript are docking and hit-refinement
+metrics, and the Wang CDK2 RBFE benchmark runs over all 16 congeneric ligands
+without passing through the MD gate. No other published quantity changes.
+
+### Note for downstream runs
+`fep.py` advances only gate-`pass` ligands to Block 4, so new runs may carry a
+slightly larger Block-4 candidate pool than they would have at 0.30.
+
 ## v1.1.8 — DUD-E parent-molecule de-duplication (unreleased; branch `v1.1.8-dedup`)
 
 Base: v1.1.6. (v1.1.7 was held back and is skipped to avoid conflation.)
